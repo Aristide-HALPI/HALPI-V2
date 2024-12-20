@@ -1,0 +1,135 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonctions de validation communes
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isValidQuizQuestion() {
+      let validTypes = ['true_false', 'mcq_single', 'mcq_multiple', 'fill_blank', 
+                       'fill_blank_complex', 'matching', 'classification', 'ordering', 
+                       'scenario_analysis', 'find_mistake', 'mcq_dependency', 'mcq_multi_context',
+                       'true_false_justify', 'open_short', 'open_long', 'case_study'];
+      return request.resource.data.type in validTypes 
+             && request.resource.data.difficultyLevel in ['easy', 'medium', 'hard']
+             && request.resource.data.points is number
+             && request.resource.data.points >= 1;
+    }
+
+    // Règle par défaut : refuser tout accès non autorisé
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Règles pour les utilisateurs
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Règles pour les cours
+    match /courses/{courseId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Règles pour les chapitres
+    match /chapters/{chapterId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Règles pour les parcours d'apprentissage
+    match /learningPaths/{pathId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Règles pour les concepts
+    match /concepts/{conceptId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Règles pour les progrès des concepts
+    match /conceptsProgress/{progressId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Règles pour les tentatives de concepts
+    match /conceptAttempts/{attemptId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Règles pour les concepts d'évaluation
+    match /evaluationConcepts/{conceptId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Règles pour les questions
+    match /questions/{questionId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Règles pour les résultats de quiz
+    match /quizResults/{resultId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Règles pour les activités
+    match /activities/{activityId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Règles pour les questions de quiz
+    match /quizQuestions/{questionId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Règles pour les questions clés
+    match /keyQuestions/{questionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                   request.resource.data.keys().hasAll(['conceptId', 'question', 'answer', 'feedback']);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Règles pour les sessions de quiz
+    match /quizSessions/{sessionId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Règles pour les statistiques
+    match /quizStats/{statId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow write: if isAuthenticated() && isOwner(request.resource.data.userId);
+    }
+  }
+}
