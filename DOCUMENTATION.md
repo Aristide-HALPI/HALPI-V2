@@ -2,6 +2,18 @@
 
 Ce document contient toutes les informations essentielles sur la structure, la base de données, le backend et les fonctionnalités de l'application HALPI V2.
 
+## État actuel du projet
+
+Le projet HALPI V2 est une application d'apprentissage permettant aux utilisateurs de gérer leurs cours et syllabus. La dernière fonctionnalité majeure implémentée est un **découpage de syllabus PDF intégré** qui permet également d'importer des fichiers PowerPoint et Word. Cette fonctionnalité est entièrement fonctionnelle et utilise les buckets Supabase `chapters` et `course-files` pour le stockage des fichiers.
+
+### Dernières modifications importantes
+
+- Intégration d'un découpage PDF directement dans l'application (sans outil externe)
+- Support pour les fichiers PowerPoint et Word en plus des PDF
+- Correction des problèmes d'upload avec Supabase Storage
+- Configuration des buckets Supabase pour le stockage des fichiers
+- Ajout d'une colonne 'importance' dans la table user_courses
+
 ## Table des matières
 
 1. [Structure de l'application](#structure-de-lapplication)
@@ -241,7 +253,51 @@ VITE_SUPABASE_ANON_KEY=votre_clé_anon_supabase
 
 ## Développement futur
 
-- Création de buckets dédiés dans Supabase pour plus de clarté et de sécurité
-- Gestion avancée des erreurs côté upload
+### Prochaines fonctionnalités à implémenter
+
+- Amélioration de l'interface utilisateur pour la gestion des chapitres
+- Ajout d'une fonctionnalité de prévisualisation des chapitres directement dans l'application
+- Implémentation d'un système de recherche dans les chapitres
+- Ajout d'annotations et de notes sur les chapitres
+
+### Améliorations techniques
+
+- Optimisation pour les très gros fichiers PDF (lazy loading)
+- Gestion avancée des erreurs côté upload (quota, rollback si upload partiel)
 - Modification des titres/descriptions des chapitres générés automatiquement
-- Optimisation pour les très gros fichiers PDF
+- Implémentation de tests unitaires et d'intégration
+
+## Branche de développement actuelle
+
+Le développement actif se fait sur la branche `feature/new-development`. La branche `main` contient la version stable du projet avec toutes les fonctionnalités implémentées jusqu'à présent.
+
+## Configuration du projet
+
+### Prérequis
+
+- Node.js (v16+)
+- npm ou yarn
+- Compte Supabase avec les buckets `chapters` et `course-files` configurés
+
+### Installation
+
+```bash
+# Cloner le dépôt
+git clone https://github.com/Aristide-HALPI/HALPI-V2.git
+cd HALPI-V2
+
+# Installer les dépendances
+npm install
+
+# Démarrer le serveur de développement
+npm run dev
+```
+
+### Variables d'environnement
+
+Créer un fichier `.env` à la racine du projet avec les variables suivantes :
+
+```
+VITE_SUPABASE_URL=votre_url_supabase
+VITE_SUPABASE_ANON_KEY=votre_clé_anon_supabase
+```
