@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import profile, courses, parcours, activities, agenda, auth
+from app.api.endpoints import profile, courses, parcours, activities, agenda, auth, document_conversion, chapters
 
 api_router = APIRouter()
 
@@ -21,3 +21,9 @@ api_router.include_router(activities.router, tags=["activities"])
 
 # Agenda endpoints
 api_router.include_router(agenda.router, tags=["agenda"])
+
+# Document conversion endpoints
+api_router.include_router(document_conversion.router, prefix="/documents", tags=["documents"])
+
+# Chapters endpoints
+api_router.include_router(chapters.router, tags=["chapters"])

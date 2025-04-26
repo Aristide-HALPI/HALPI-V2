@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, Calendar, BookOpen, Edit2, Trash2, ChevronRight, AlertCircle } from 'lucide-react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePageVisibility } from '../../hooks/usePageVisibility';
 
 interface Course {
   id: string;
@@ -29,17 +30,42 @@ interface CourseListProps {
 
 const CourseList = ({ onAddCourse }: CourseListProps) => {
   const { user } = useAuth();
+  const { isVisible, lastVisibleTime } = usePageVisibility();
+  
+  // Référence pour éviter les rechargements multiples
+  const dataFetchedRef = useRef<boolean>(false);
+  
   const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
 
+  // Chargement initial des données
   useEffect(() => {
-    fetchUserCourses();
+    if (!user) return;
+    
+    // Éviter les rechargements multiples
+    if (!dataFetchedRef.current) {
+      fetchUserCourses();
+      dataFetchedRef.current = true;
+    }
   }, [user]);
+  
+  // Stabiliser l'état lors des changements de visibilité
+  useEffect(() => {
+    // Ne recharger que si la page était invisible pendant plus de 5 minutes (300000ms)
+    const visibilityThreshold = 300000; // 5 minutes en millisecondes
+    
+    if (isVisible && Date.now() - lastVisibleTime > visibilityThreshold && user) {
+      fetchUserCourses();
+    }
+  }, [isVisible, lastVisibleTime, user]);
 
   const fetchUserCourses = async () => {
     if (!user) return;
+    
+    // Drapeau pour éviter les fuites de mémoire
+    let isMounted = true;
     
     try {
       setLoading(true);
@@ -68,7 +94,8 @@ const CourseList = ({ onAddCourse }: CourseListProps) => {
         estimated_time: item.estimated_time,
         course: Array.isArray(item.course) && item.course.length > 0 ? item.course[0] : {
           id: '',
-          name: 'Cours non disponible',
+          // Utiliser le nom que l'apprenant a entré lors de la création du cours
+          name: item.name || 'Mon cours',
           description: '',
           image_url: ''
         },
@@ -87,12 +114,23 @@ const CourseList = ({ onAddCourse }: CourseListProps) => {
         }
       }
       
-      setUserCourses(typedUserCourses);
+      if (isMounted) {
+        setUserCourses(typedUserCourses);
+      }
     } catch (err: any) {
       console.error('Error fetching user courses:', err);
-      setError('Impossible de charger vos cours');
+      if (isMounted) {
+        setError('Impossible de charger vos cours');
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
+    }
+    
+    // Nettoyage
+    return () => {
+      isMounted = false;
     }
   };
 
@@ -329,7 +367,7 @@ const CourseList = ({ onAddCourse }: CourseListProps) => {
                     >
                       <Trash2 size={18} className="text-red-500" />
                     </Button>
-                    <Link to={`/courses/${userCourse.course_id}`}>
+                    <Link to={`/courses/edit/${userCourse.course_id}`}>
                       <Button variant="outline" size="sm" className="p-1">
                         <Edit2 size={18} className="text-primary-500" />
                       </Button>

@@ -8,6 +8,9 @@ Le projet HALPI V2 est une application d'apprentissage permettant aux utilisateu
 
 ### Dernières modifications importantes
 
+- Correction des erreurs de sécurité RLS lors de l'upload de fichiers vers Supabase Storage
+- Simplification des chemins de fichiers pour éviter les problèmes d'URL
+- Ajout d'une fonctionnalité de conversion automatique de documents (PowerPoint, Word) en PDF via le backend
 - Intégration d'un découpage PDF directement dans l'application (sans outil externe)
 - Support pour les fichiers PowerPoint et Word en plus des PDF
 - Correction des problèmes d'upload avec Supabase Storage
@@ -127,9 +130,13 @@ USING (auth.uid() = user_id);
 
 ```typescript
 // Upload d'un fichier dans le bucket 'chapters'
+// Utiliser un nom de fichier simple pour éviter les problèmes d'URL
+const fileExt = file.name.split('.').pop() || 'pdf';
+const fileName = `file_${Date.now()}.${fileExt}`;
+
 const { error } = await supabase.storage
   .from('chapters')
-  .upload(filePath, file, {
+  .upload(fileName, file, {
     cacheControl: '3600',
     upsert: true
   });
@@ -137,8 +144,22 @@ const { error } = await supabase.storage
 // Récupération de l'URL publique
 const { data } = supabase.storage
   .from('chapters')
-  .getPublicUrl(filePath);
+  .getPublicUrl(fileName);
 ```
+
+### Résolution des problèmes courants
+
+#### Erreur "new row violates row-level security policy"
+
+Cette erreur se produit lorsque les politiques RLS de Supabase empêchent l'insertion de données. Pour la table `chapters`, assurez-vous que l'utilisateur a accès au cours correspondant dans la table `user_courses`.
+
+#### Erreur 400 lors de l'upload vers Supabase Storage
+
+Pour résoudre ce problème :
+1. Vérifiez que les buckets `chapters` et `course-files` existent dans Supabase Storage
+2. Configurez les politiques d'accès pour permettre l'upload aux utilisateurs authentifiés
+3. Simplifiez les noms de fichiers pour éviter les problèmes d'URL
+4. Utilisez les options `cacheControl` et `upsert` lors de l'upload
 
 ## Authentification
 
@@ -174,6 +195,7 @@ Après l'inscription, un profil utilisateur est créé dans la table `user_profi
 ### 2. Découpage de syllabus PDF
 
 - Téléchargement de fichiers PDF, PowerPoint et Word
+- Conversion automatique des fichiers PowerPoint et Word en PDF via le backend
 - Découpage des PDF en chapitres via l'interface intégrée
 - Importation directe des fichiers PowerPoint et Word comme chapitres uniques
 - Stockage des fichiers dans Supabase Storage
@@ -255,6 +277,7 @@ VITE_SUPABASE_ANON_KEY=votre_clé_anon_supabase
 
 ### Prochaines fonctionnalités à implémenter
 
+- Création d'une interface d'administration pour suivre la progression des apprenants
 - Amélioration de l'interface utilisateur pour la gestion des chapitres
 - Ajout d'une fonctionnalité de prévisualisation des chapitres directement dans l'application
 - Implémentation d'un système de recherche dans les chapitres
@@ -278,6 +301,15 @@ Le développement actif se fait sur la branche `feature/new-development`. La bra
 - Node.js (v16+)
 - npm ou yarn
 - Compte Supabase avec les buckets `chapters` et `course-files` configurés
+
+### Configuration de l'IDE
+
+Pour une meilleure expérience de développement, nous recommandons d'utiliser Visual Studio Code avec les extensions suivantes :
+
+- **Tailwind CSS IntelliSense** (bradlc.vscode-tailwindcss) : Fournit l'autocomplétion et la validation pour les classes Tailwind CSS
+- **PostCSS Language Support** (csstools.postcss) : Ajoute le support pour les directives PostCSS comme `@tailwind` et `@apply`
+
+Ces extensions sont configurées dans le fichier `.vscode/extensions.json` et devraient être automatiquement recommandées lors de l'ouverture du projet.
 
 ### Installation
 

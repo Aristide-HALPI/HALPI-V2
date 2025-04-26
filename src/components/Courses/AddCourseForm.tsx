@@ -9,20 +9,31 @@ import { useAuth } from '../../contexts/AuthContext';
 interface AddCourseFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  initialData?: {
+    id?: string;
+    course_id?: string;
+    name?: string;
+    exam_date?: string;
+    difficulty?: string;
+    estimated_time?: number | string;
+    importance?: string;
+    image_url?: string;
+    level?: string;
+  };
 }
 
-const AddCourseForm = ({ onSuccess, onCancel }: AddCourseFormProps) => {
+const AddCourseForm = ({ onSuccess, onCancel, initialData }: AddCourseFormProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
-    name: '',
-    exam_date: '',
-    difficulty: 'moyen', // facile, moyen, difficile, très difficile, inconnu
-    estimated_time: '10-15', // tranches d'heures ou 'inconnu'
-    importance: 'moyen', // faible, moyen, élevé, inconnu
+    name: initialData?.name || '',
+    exam_date: initialData?.exam_date || '',
+    difficulty: initialData?.difficulty || 'moyen', // facile, moyen, difficile, très difficile, inconnu
+    estimated_time: initialData?.estimated_time?.toString() || '10-15', // tranches d'heures ou 'inconnu'
+    importance: initialData?.importance || 'moyen', // faible, moyen, élevé, inconnu
   });
   
   // Références pour les champs de date
@@ -30,10 +41,25 @@ const AddCourseForm = ({ onSuccess, onCancel }: AddCourseFormProps) => {
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
   
+  // Initialiser les parties de la date à partir des données initiales
+  const initializeDate = () => {
+    if (initialData?.exam_date) {
+      const date = new Date(initialData.exam_date);
+      return {
+        day: date.getDate().toString().padStart(2, '0'),
+        month: (date.getMonth() + 1).toString().padStart(2, '0'),
+        year: date.getFullYear().toString()
+      };
+    }
+    return { day: '', month: '', year: '' };
+  };
+  
+  const initialDate = initializeDate();
+  
   // États pour les parties de la date
-  const [dateDay, setDateDay] = useState('');
-  const [dateMonth, setDateMonth] = useState('');
-  const [dateYear, setDateYear] = useState('');
+  const [dateDay, setDateDay] = useState(initialDate.day);
+  const [dateMonth, setDateMonth] = useState(initialDate.month);
+  const [dateYear, setDateYear] = useState(initialDate.year);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -160,54 +186,78 @@ const AddCourseForm = ({ onSuccess, onCancel }: AddCourseFormProps) => {
         throw new Error("Le nom du cours est requis");
       }
       
-      if (!formData.exam_date) {
-        throw new Error("La date de l'examen est requise");
+      if (initialData?.id) {
+        // Mode édition
+        // 1. Mettre à jour le cours dans la table courses
+        const { error: courseError } = await supabase
+          .from('courses')
+          .update({ 
+            name: formData.name.trim(),
+            description: '',
+            image_url: initialData?.image_url || '',
+            level: initialData?.level || 'débutant'
+          })
+          .eq('id', initialData.id);
+        
+        if (courseError) throw courseError;
+        
+        // 2. Mettre à jour l'entrée dans user_courses
+        const { error: userCourseError } = await supabase
+          .from('user_courses')
+          .update({
+            exam_date: formData.exam_date || null,
+            difficulty: formData.difficulty,
+            estimated_time: formData.estimated_time === 'inconnu' ? null : parseInt(formData.estimated_time.split('-')[0]),
+            importance: formData.importance
+          })
+          .eq('course_id', initialData.id);
+        
+        if (userCourseError) throw userCourseError;
+        
+        // Rediriger vers la page du cours
+        navigate(`/courses/${initialData.id}`);
+        onSuccess();
+      } else {
+        // Mode création
+        // 1. Créer le cours dans la table courses
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .insert([
+            { 
+              name: formData.name.trim(),
+              description: '',
+              image_url: '',
+              level: 'débutant'
+            }
+          ])
+          .select()
+          .single();
+        
+        if (courseError) throw courseError;
+        
+        // 2. Créer l'entrée dans user_courses pour lier le cours à l'utilisateur
+        const { error: userCourseError } = await supabase
+          .from('user_courses')
+          .insert([
+            {
+              user_id: user.id,
+              course_id: courseData.id,
+              exam_date: formData.exam_date || null,
+              difficulty: formData.difficulty,
+              estimated_time: formData.estimated_time === 'inconnu' ? null : parseInt(formData.estimated_time.split('-')[0]),
+              importance: formData.importance
+            }
+          ]);
+        
+        if (userCourseError) throw userCourseError;
+        
+        // Rediriger vers la page du cours
+        navigate(`/courses/${courseData.id}`);
+        onSuccess();
       }
-      
-      // Insertion du cours dans la base de données
-      const { data, error: insertError } = await supabase
-        .from('courses')
-        .insert({
-          name: formData.name,
-          description: `Cours de ${formData.name}`,
-          level: 'custom',
-          image_url: 'https://images.pexels.com/photos/4144923/pexels-photo-4144923.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
-        })
-        .select('id')
-        .single();
-      
-      if (insertError) throw insertError;
-      
-      if (!data?.id) {
-        throw new Error("Erreur lors de la création du cours");
-      }
-      
-      const courseId = data.id;
-      
-      // Création de l'association utilisateur-cours
-      const { error: userCourseError } = await supabase
-        .from('user_courses')
-        .insert({
-          user_id: user.id,
-          course_id: courseId,
-          exam_date: new Date(formData.exam_date).toISOString(),
-          difficulty: formData.difficulty,
-          estimated_time: formData.estimated_time === 'inconnu' ? null : parseInt(formData.estimated_time.split('-')[0]),
-          importance: formData.importance,
-          content_type: 'uploaded'
-        });
-      
-      if (userCourseError) throw userCourseError;
-      
-      // Succès - informer le parent
-      onSuccess();
-      
-      // Rediriger vers la page de détails du cours pour ajouter des chapitres
-      navigate(`/courses/${courseId}`);
-      
     } catch (err: any) {
-      console.error('Error adding course:', err);
-      setError(err.message || "Une erreur est survenue lors de l'ajout du cours");
+      console.error('Error creating/updating course:', err);
+      setError(err.message || 'Une erreur est survenue lors de la création/modification du cours');
     } finally {
       setIsLoading(false);
     }

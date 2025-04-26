@@ -13,7 +13,8 @@ import SignupPage from './pages/auth/SignupPage.tsx';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
 import CoursesPage from './pages/CoursesPage.tsx';
-import CourseDetailsPage from './pages/courses/CourseDetailsPage.tsx';
+import CourseDetailsPage from './pages/courses/CourseDetailsPage';
+import EditCoursePage from './pages/courses/EditCoursePage';
 import ParcoursPage from './pages/parcours/ParcoursPage.tsx';
 import CourseProgressPage from './pages/parcours/CourseProgressPage.tsx';
 import AgendaPage from './pages/AgendaPage.tsx';
@@ -65,6 +66,7 @@ function App() {
       >
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/courses" element={<CoursesPage />} />
+        <Route path="/courses/edit/:courseId" element={<EditCoursePage />} />
         <Route path="/courses/:courseId" element={<CourseDetailsPage />} />
         <Route path="/parcours" element={<ParcoursPage />} />
         <Route path="/parcours/:courseId" element={<CourseProgressPage />} />

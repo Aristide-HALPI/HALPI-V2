@@ -2,9 +2,14 @@ fastapi==0.104.1
 uvicorn==0.23.2
 pydantic==2.4.2
 python-dotenv==1.0.0
-httpx==0.25.0
+httpx==0.24.1
 python-jose==3.3.0
 passlib==1.7.4
 python-multipart==0.0.6
 supabase==1.2.0
 pydantic-settings==2.0.3
+# Dépendances pour la conversion de documents
+python-docx==0.8.11
+python-pptx==0.6.21
+pdfplumber==0.10.3
+pywin32==310; platform_system == "Windows"
