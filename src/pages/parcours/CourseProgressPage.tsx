@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, Book, CheckCircle, Clock, Award } from 'lucide-react';
+import { 
+  ChevronLeft, Book, CheckCircle, Award, ChevronDown, ChevronUp, FileText,
+  Brain, Lightbulb, PenTool, Map, Puzzle, Zap, BookOpen, Microscope
+} from 'lucide-react';
 import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Chapter {
   id: string;
@@ -11,14 +14,18 @@ interface Chapter {
   description: string;
   activities: Activity[];
   isCompleted: boolean;
+  is_introduction?: boolean;
+  is_conclusion?: boolean;
 }
 
 interface Activity {
   id: string;
   title: string;
-  type: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video';
+  type: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'header';
   duration: number;
   isCompleted: boolean;
+  chapterId?: string;
+  parentId?: string;
 }
 
 interface Course {
@@ -34,118 +41,263 @@ interface Course {
 
 const CourseProgressPage = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openPhases, setOpenPhases] = useState<{[key: string]: boolean}>({ c1: false, c2: false, c3: false });
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        // Dans une implémentation réelle, nous récupérerions les données depuis Supabase
-        // Pour l'instant, utilisons des données temporaires
+        if (!courseId || !user) {
+          setError('Identifiant de cours ou utilisateur non disponible');
+          setLoading(false);
+          return;
+        }
+
+        // Récupérer d'abord le user_course pour obtenir le course_id
+        console.log('Fetching user_course with ID:', courseId);
+        const { data: userCourseData, error: userCourseError } = await supabase
+          .from('user_courses')
+          .select('*')
+          .eq('id', courseId)
+          .single();
+        
+        if (userCourseError) {
+          console.error('Error fetching user_course:', userCourseError);
+          throw new Error(`Erreur lors de la récupération du parcours: ${userCourseError.message}`);
+        }
+        
+        if (!userCourseData) {
+          console.error('No user_course found with ID:', courseId);
+          throw new Error('Parcours non trouvé');
+        }
+        
+        console.log('User course data:', JSON.stringify(userCourseData, null, 2));
+
+        // Récupérer les informations du cours associé
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('id', userCourseData.course_id)
+          .single();
+        
+        if (courseError) {
+          console.error('Error fetching course:', courseError);
+          throw new Error(`Erreur lors de la récupération du cours: ${courseError.message}`);
+        }
+        
+        if (!courseData) {
+          console.error('No course found with ID:', userCourseData.course_id);
+          throw new Error('Cours associé non trouvé');
+        }
+        
+        console.log('Course data:', JSON.stringify(courseData, null, 2));
+
+        // Récupérer les chapitres du cours
+        console.log('Fetching chapters for course ID:', userCourseData.course_id);
+        const { data: chaptersData, error: chaptersError } = await supabase
+          .from('chapters')
+          .select('*')
+          .eq('course_id', userCourseData.course_id)
+          .order('order_index', { ascending: true });
+
+        if (chaptersError) {
+          console.error('Error fetching chapters data:', chaptersError);
+          throw new Error(`Erreur lors de la récupération des chapitres: ${chaptersError.message}`);
+        }
+        
+        console.log('Chapters data:', JSON.stringify(chaptersData, null, 2));
+        
+        // Filtrer les chapitres marqués comme introduction ou conclusion dans la base de données
+        const filteredChapters = chaptersData ? [...chaptersData]
+          .filter(chapter => {
+            // On exclut les chapitres marqués comme introduction ou conclusion
+            return !chapter.is_introduction && !chapter.is_conclusion;
+          })
+          .sort((a, b) => {
+            return (a.order_index || 0) - (b.order_index || 0);
+          }) : [];
+        
+        console.log('Chapitres filtrés (sans intro/conclusion):', JSON.stringify(filteredChapters, null, 2));
+        console.log('Nombre de chapitres après filtrage:', filteredChapters.length);
+        console.log('Chapitres introduction/conclusion exclus:', chaptersData ? chaptersData.filter(ch => ch.is_introduction || ch.is_conclusion).length : 0);
+        
+        // Si aucun chapitre n'est trouvé, créer des chapitres factices pour le test
+        let chaptersToUse = filteredChapters;
+        if (filteredChapters.length === 0) {
+          console.log('Aucun chapitre trouvé, création de chapitres factices pour le test');
+          chaptersToUse = [
+            { id: 'fake-ch1', title: 'Chapitre 1', order_index: 1 },
+            { id: 'fake-ch2', title: 'Chapitre 2', order_index: 2 },
+            { id: 'fake-ch3', title: 'Chapitre 3', order_index: 3 }
+          ] as any[];
+        }
+        
+        // Créer la structure du cours pour l'affichage
+        const phase1Activities: Activity[] = chaptersToUse.flatMap((chapter, chapterIndex) => [
+          // Titre du chapitre comme activité de type 'header'
+          {
+            id: `a1-ch${chapterIndex}-header`,
+            title: chapter.title,
+            type: 'header' as const,
+            duration: 0,
+            isCompleted: false,
+            chapterId: chapter.id
+          },
+          // Étape 1 pour ce chapitre
+          {
+            id: `a1-ch${chapterIndex}-step1`,
+            title: 'Etape 1. Lecture active',
+            type: 'lecture_active' as const,
+            duration: 15,
+            isCompleted: false,
+            chapterId: chapter.id,
+            parentId: `a1-ch${chapterIndex}-header`
+          },
+          // Étape 2 pour ce chapitre
+          {
+            id: `a1-ch${chapterIndex}-step2`,
+            title: 'Etape 2. Élaboration des Concepts Clés',
+            type: 'lecture_active' as const,
+            duration: 20,
+            isCompleted: false,
+            chapterId: chapter.id,
+            parentId: `a1-ch${chapterIndex}-header`
+          }
+        ]);
+        
+        const phase2Activities: Activity[] = chaptersToUse.flatMap((chapter, chapterIndex) => [
+          // Titre du chapitre comme activité de type 'header'
+          {
+            id: `a2-ch${chapterIndex}-header`,
+            title: chapter.title,
+            type: 'header' as const,
+            duration: 0,
+            isCompleted: false,
+            chapterId: chapter.id
+          },
+          // Étape 3 pour ce chapitre
+          {
+            id: `a2-ch${chapterIndex}-step3`,
+            title: 'Etape 3. Mémorisation des concepts clés',
+            type: 'lecture_active' as const,
+            duration: 20,
+            isCompleted: false,
+            chapterId: chapter.id,
+            parentId: `a2-ch${chapterIndex}-header`
+          },
+          // Étape 4 pour ce chapitre
+          {
+            id: `a2-ch${chapterIndex}-step4`,
+            title: 'Etape 4. Mindmapping',
+            type: 'pratique_deliberee' as const,
+            duration: 30,
+            isCompleted: false,
+            chapterId: chapter.id,
+            parentId: `a2-ch${chapterIndex}-header`
+          }
+        ]);
+        
+        console.log('Phase 1 activities:', phase1Activities.length);
+        console.log('Phase 2 activities:', phase2Activities.length);
+        
         const tempCourse: Course = {
-          id: courseId || '1',
-          title: 'Les fondamentaux du windsurf',
-          description: 'Maîtrisez les bases du windsurf : équipement, positionnement, et premiers déplacements.',
-          level: 'Débutant',
-          image: 'https://images.pexels.com/photos/1604869/pexels-photo-1604869.jpeg',
-          progress: 35,
-          examDate: '2025-06-15',
+          id: courseId,
+          title: courseData.name || 'Introduction à la psychologie',
+          description: courseData.description || '',
+          level: userCourseData.difficulty || 'Débutant',
+          image: courseData.image_url || '',
+          progress: 0, // À calculer en fonction des activités complétées
+          examDate: userCourseData.exam_date,
           chapters: [
             {
               id: 'c1',
-              title: 'Introduction au windsurf',
-              description: 'Découvrez l\'histoire et les principes de base du windsurf.',
-              isCompleted: true,
-              activities: [
-                {
-                  id: 'a1',
-                  title: 'Histoire du windsurf',
-                  type: 'lecture_active',
-                  duration: 15,
-                  isCompleted: true
-                },
-                {
-                  id: 'a2',
-                  title: 'Principes aérodynamiques',
-                  type: 'video',
-                  duration: 10,
-                  isCompleted: true
-                },
-                {
-                  id: 'a3',
-                  title: 'Quiz: Concepts de base',
-                  type: 'quiz',
-                  duration: 5,
-                  isCompleted: true
-                }
-              ]
+              title: 'Phase 1 : Découvrir le savoir',
+              description: '',
+              isCompleted: false,
+              activities: phase1Activities
             },
             {
               id: 'c2',
-              title: 'Équipement',
-              description: 'Apprenez à connaître et choisir votre équipement de windsurf.',
+              title: 'Phase 2 : Comprendre le savoir',
+              description: '',
               isCompleted: false,
-              activities: [
-                {
-                  id: 'a4',
-                  title: 'Les planches de windsurf',
-                  type: 'lecture_active',
-                  duration: 20,
-                  isCompleted: true
-                },
-                {
-                  id: 'a5',
-                  title: 'Les voiles et gréements',
-                  type: 'lecture_active',
-                  duration: 20,
-                  isCompleted: false
-                },
-                {
-                  id: 'a6',
-                  title: 'Pratique: Choix de l\'équipement',
-                  type: 'pratique_deliberee',
-                  duration: 30,
-                  isCompleted: false
-                }
-              ]
+              activities: phase2Activities
             },
             {
               id: 'c3',
-              title: 'Techniques de base',
-              description: 'Maîtrisez les techniques fondamentales du windsurf.',
+              title: 'Phase 3 : Ancrer le savoir',
+              description: '',
               isCompleted: false,
               activities: [
+                // Consolidation 1 avec son groupe d'activités
                 {
-                  id: 'a7',
-                  title: 'Position sur la planche',
-                  type: 'video',
-                  duration: 15,
+                  id: 'a13',
+                  title: 'Consolidation 1',
+                  type: 'header',
+                  duration: 0,
                   isCompleted: false
                 },
                 {
-                  id: 'a8',
-                  title: 'Techniques de départ',
-                  type: 'lecture_active',
-                  duration: 25,
+                  id: 'a14',
+                  title: 'Quiz 1',
+                  type: 'quiz',
+                  duration: 10,
+                  isCompleted: false,
+                  parentId: 'a13'
+                },
+                {
+                  id: 'a15',
+                  title: 'Remédiation 1',
+                  type: 'pratique_deliberee',
+                  duration: 15,
+                  isCompleted: false,
+                  parentId: 'a13'
+                },
+                
+                // Consolidation 2 avec son groupe d'activités
+                {
+                  id: 'a16',
+                  title: 'Consolidation 2',
+                  type: 'header',
+                  duration: 0,
                   isCompleted: false
+                },
+                {
+                  id: 'a17',
+                  title: 'Quiz 2',
+                  type: 'quiz',
+                  duration: 10,
+                  isCompleted: false,
+                  parentId: 'a16'
+                },
+                {
+                  id: 'a18',
+                  title: 'Remédiation 2',
+                  type: 'pratique_deliberee',
+                  duration: 15,
+                  isCompleted: false,
+                  parentId: 'a16'
                 }
               ]
             }
           ]
         };
         
+        console.log('Course structure:', JSON.stringify(tempCourse.chapters.map(ch => ({ id: ch.id, title: ch.title, activities: ch.activities.length })), null, 2));
         setCourse(tempCourse);
       } catch (err) {
         console.error('Error fetching course:', err);
-        setError('Impossible de charger les détails du cours');
+        setError(err instanceof Error ? err.message : 'Impossible de charger les détails du cours');
       } finally {
         setLoading(false);
       }
     };
     
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, user]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Chargement...</div>;
@@ -158,28 +310,21 @@ const CourseProgressPage = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <Link to="/parcours" className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-4">
-          <ChevronLeft size={16} className="mr-1" />
-          Retour aux parcours
-        </Link>
-        
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-heading font-bold text-gray-900">{course.title}</h1>
-            <p className="text-gray-600">{course.description}</p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button variant="outline" leftIcon={<Book size={16} />}>
-              Ressources
-            </Button>
-            <Button variant="default">
-              Continuer
-            </Button>
+      <Card className="mb-6">
+        <div className="flex flex-col md:flex-row">
+          <div className="p-6 md:w-2/3">
+            <div className="flex items-center gap-2 mb-4">
+              <Link to="/parcours" className="text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                <ChevronLeft size={20} />
+                <span>Retour aux parcours</span>
+              </Link>
+            </div>
+            
+            <h1 className="text-2xl font-heading font-bold text-gray-900 mb-2">{course.title}</h1>
+            <p className="text-gray-600 mb-4">{course.description}</p>
           </div>
         </div>
-      </div>
+      </Card>
       
       {/* Progress overview */}
       <Card className="p-6">
@@ -204,14 +349,14 @@ const CourseProgressPage = () => {
               <div>
                 <p className="text-xs text-gray-500">Chapitres complétés</p>
                 <p className="font-medium text-gray-900">
-                  {course.chapters.filter(c => c.isCompleted).length}/{course.chapters.length}
+                  {course.chapters ? course.chapters.filter(c => c.isCompleted).length : 0}/{course.chapters ? course.chapters.length : 0}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Activités complétées</p>
                 <p className="font-medium text-gray-900">
-                  {course.chapters.flatMap(c => c.activities).filter(a => a.isCompleted).length}/
-                  {course.chapters.flatMap(c => c.activities).length}
+                  {course.chapters ? course.chapters.flatMap(c => c.activities).filter(a => a.isCompleted).length : 0}/
+                  {course.chapters ? course.chapters.flatMap(c => c.activities).length : 0}
                 </p>
               </div>
               {course.examDate && (
@@ -233,11 +378,24 @@ const CourseProgressPage = () => {
       
       {/* Chapters list */}
       <div className="space-y-4">
-        <h2 className="text-xl font-medium text-gray-900">Contenu du cours</h2>
+        <h2 className="text-xl font-medium text-gray-900">Contenu du parcours</h2>
         
-        {course.chapters.map((chapter, index) => (
+        {course.chapters && course.chapters.map((chapter, index) => (
           <Card key={chapter.id} className="overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
+            <button 
+              className="w-full p-6 border-b border-gray-100 text-left focus:outline-none"
+              onClick={() => {
+                console.log('Toggling phase:', chapter.id, 'Current state:', openPhases[chapter.id]);
+                setOpenPhases(prev => {
+                  const newState = {
+                    ...prev,
+                    [chapter.id]: !prev[chapter.id]
+                  };
+                  console.log('New state:', newState);
+                  return newState;
+                });
+              }}
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -251,49 +409,112 @@ const CourseProgressPage = () => {
                   </div>
                   <p className="text-gray-600">{chapter.description}</p>
                 </div>
+                <div>
+                  {openPhases[chapter.id] ? (
+                    <ChevronUp size={20} className="text-gray-500" />
+                  ) : (
+                    <ChevronDown size={20} className="text-gray-500" />
+                  )}
+                </div>
               </div>
-            </div>
+            </button>
             
-            <div className="bg-gray-50 divide-y divide-gray-100">
-              {chapter.activities.map((activity) => (
-                <Link 
-                  key={activity.id}
-                  to={`/activities/${activity.id}`}
-                  className="flex items-center justify-between p-4 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`
-                      p-2 rounded-full
-                      ${activity.type === 'lecture_active' ? 'bg-blue-100' : 
-                        activity.type === 'quiz' ? 'bg-accent-100' : 
-                        activity.type === 'pratique_deliberee' ? 'bg-success-100' : 
-                        'bg-primary-100'}
-                    `}>
-                      {activity.type === 'lecture_active' ? <Book size={16} className="text-blue-600" /> : 
-                       activity.type === 'quiz' ? <Award size={16} className="text-accent-600" /> : 
-                       <Clock size={16} className="text-success-600" />}
+
+            
+            <div className={`${openPhases[chapter.id] ? 'block' : 'hidden'} bg-gray-50 divide-y divide-gray-100`}>
+              {chapter.activities && chapter.activities.length > 0 ? chapter.activities.map((activity) => {
+                // Si c'est un header de chapitre, on affiche différemment
+                if (activity.type === 'header') {
+                  // Simplifier le titre du chapitre si nécessaire
+                  let displayTitle = activity.title;
+                  
+                  // Si c'est un chapitre (pas une consolidation) et que le titre contient des deux-points, on garde seulement la première partie
+                  if (!activity.title.includes('Consolidation') && displayTitle.includes(':')) {
+                    displayTitle = displayTitle.split(':')[0].trim();
+                  }
+                  
+                  // Si le titre contient "Introduction à la psychologie - Chapitre X", on extrait juste "Chapitre X"
+                  if (displayTitle.includes('Introduction à la psychologie - ')) {
+                    displayTitle = displayTitle.replace('Introduction à la psychologie - ', '');
+                  }
+                  
+                  return (
+                    <div key={activity.id} className="bg-gray-100 p-4 border-l-4 border-primary-500">
+                      <div className="flex items-center gap-2">
+                        {activity.title.includes('Consolidation') ? 
+                          <Puzzle size={18} className="text-orange-600" /> : 
+                          <FileText size={18} className="text-primary-600" />}
+                        <h4 className="font-semibold text-gray-800">{displayTitle}</h4>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // Pour les activités normales
+                return (
+                  <Link 
+                    key={activity.id}
+                    to={`/activities/${activity.id}?returnTo=${courseId}`}
+                    className={`flex items-center justify-between p-4 hover:bg-gray-100 transition-colors ${activity.parentId ? 'pl-16' : 'pl-10'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        p-2 rounded-full
+                        ${activity.title.includes('Lecture active') ? 'bg-blue-100' :
+                          activity.title.includes('Élaboration des Concepts') ? 'bg-yellow-100' :
+                          activity.title.includes('Mémorisation') ? 'bg-purple-100' :
+                          activity.title.includes('Mindmapping') ? 'bg-green-100' :
+                          activity.title.includes('Consolidation') ? 'bg-orange-100' :
+                          activity.title.includes('Quiz') ? 'bg-accent-100' :
+                          activity.title.includes('Remédiation') ? 'bg-pink-100' :
+                          activity.type === 'lecture_active' ? 'bg-blue-100' :
+                          activity.type === 'quiz' ? 'bg-accent-100' :
+                          activity.type === 'pratique_deliberee' ? 'bg-success-100' :
+                          'bg-primary-100'}
+                      `}>
+                        {activity.title.includes('Lecture active') ? <BookOpen size={16} className="text-blue-600" /> :
+                         activity.title.includes('Élaboration des Concepts') ? <Lightbulb size={16} className="text-yellow-600" /> :
+                         activity.title.includes('Mémorisation') ? <Brain size={16} className="text-purple-600" /> :
+                         activity.title.includes('Mindmapping') ? <Map size={16} className="text-green-600" /> :
+                         activity.title.includes('Consolidation') ? <Puzzle size={16} className="text-orange-600" /> :
+                         activity.title.includes('Quiz') ? <Award size={16} className="text-accent-600" /> :
+                         activity.title.includes('Remédiation') ? <Zap size={16} className="text-pink-600" /> :
+                         activity.type === 'lecture_active' ? <Book size={16} className="text-blue-600" /> :
+                         activity.type === 'quiz' ? <Award size={16} className="text-accent-600" /> :
+                         activity.type === 'pratique_deliberee' ? <PenTool size={16} className="text-success-600" /> :
+                         <Microscope size={16} className="text-primary-600" />}
+                      </div>
+                      
+                      <div>
+                        <p className={`font-medium ${activity.isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                          {activity.title}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {activity.title.includes('Lecture active') ? 'Lecture active' :
+                           activity.title.includes('Élaboration des Concepts') ? 'Élaboration' :
+                           activity.title.includes('Mémorisation') ? 'Mémorisation' :
+                           activity.title.includes('Mindmapping') ? 'Mindmapping' :
+                           activity.title.includes('Consolidation') ? 'Consolidation' :
+                           activity.title.includes('Quiz') ? 'Quiz' :
+                           activity.title.includes('Remédiation') ? 'Remédiation' :
+                           activity.type === 'lecture_active' ? 'Lecture active' : 
+                           activity.type === 'quiz' ? 'Quiz' : 
+                           activity.type === 'pratique_deliberee' ? 'Pratique délibérée' : 
+                           'Activité'}{activity.duration > 0 ? ` • ${activity.duration} min` : ''}
+                        </p>
+                      </div>
                     </div>
                     
-                    <div>
-                      <p className={`font-medium ${activity.isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                        {activity.title}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {activity.type === 'lecture_active' ? 'Lecture active' : 
-                         activity.type === 'quiz' ? 'Quiz' : 
-                         activity.type === 'pratique_deliberee' ? 'Pratique délibérée' : 
-                         'Vidéo'} • {activity.duration} min
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {activity.isCompleted ? (
-                    <CheckCircle size={16} className="text-success-500" />
-                  ) : (
-                    <ChevronLeft size={16} className="text-gray-400 transform rotate-180" />
-                  )}
-                </Link>
-              ))}
+                    {activity.isCompleted ? (
+                      <CheckCircle size={16} className="text-success-500" />
+                    ) : (
+                      <ChevronLeft size={16} className="text-gray-400 transform rotate-180" />
+                    )}
+                  </Link>
+                );
+              }) : (
+                <div className="p-4 text-gray-500 italic">Aucune activité disponible pour cette phase</div>
+              )}
             </div>
           </Card>
         ))}

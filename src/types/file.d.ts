@@ -4,4 +4,4 @@ interface FileConstructor {
   readonly prototype: File;
 }
 
-declare var File: FileConstructor;
+declare let File: FileConstructor;

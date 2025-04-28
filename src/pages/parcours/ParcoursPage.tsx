@@ -6,23 +6,24 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface CourseProgress {
-  id: string;
-  title: string;
-  description: string;
-  level: string;
-  image: string;
-  progress: number;
-  lastActivity: string;
+  id: string;               // user_course.id
+  course_id: string;        // course.id
+  title: string;            // course.name
+  description: string;      // course.description
+  level: string;            // course.level ou user_course.difficulty
+  progress: number;         // calculé à partir des activités
+  lastActivity: string;     // dernière activité ou date de création
   nextActivity?: {
     id: string;
     title: string;
     type: string;
     estimatedTime: number;
   };
-  examDate?: string;
-  timeSpent: number;
-  totalActivities: number;
-  completedActivities: number;
+  examDate?: string;        // user_course.exam_date
+  timeSpent: number;        // temps passé sur le cours
+  totalActivities: number;  // nombre total d'activités
+  completedActivities: number; // nombre d'activités complétées
+  chapter_count: number;    // nombre de chapitres
 }
 
 const ParcoursPage = () => {
@@ -31,84 +32,91 @@ const ParcoursPage = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   
-  useEffect(() => {
-    const fetchUserCourses = async () => {
-      if (!user) return;
-      
-      try {
-        // Dans une implémentation réelle, nous récupérerions les données depuis Supabase
-        // const { data, error } = await supabase
-        //   .from('user_course_progress')
-        //   .select(`
-        //     id,
-        //     progression_rate,
-        //     total_study_time,
-        //     exam_date,
-        //     last_updated_at,
-        //     courses (
-        //       id,
-        //       name,
-        //       description,
-        //       level,
-        //       image_url
-        //     )
-        //   `)
-        //   .eq('user_id', user.id);
-        
-        // if (error) throw error;
-        
-        // Pour l'instant, utilisons des données temporaires
-        const tempData: CourseProgress[] = [
-          {
-            id: '1',
-            title: 'Les fondamentaux du windsurf',
-            description: 'Maîtrisez les bases du windsurf : équipement, positionnement, et premiers déplacements.',
-            level: 'Débutant',
-            image: 'https://images.pexels.com/photos/1604869/pexels-photo-1604869.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-            progress: 35,
-            lastActivity: '2025-04-20T14:30:00',
-            nextActivity: {
-              id: 'a1',
-              title: 'Lecture active : Choix de l\'équipement',
-              type: 'lecture_active',
-              estimatedTime: 20
-            },
-            examDate: '2025-06-15',
-            timeSpent: 180,
-            totalActivities: 24,
-            completedActivities: 8
-          },
-          {
-            id: '4',
-            title: 'Navigation par vent fort',
-            description: 'Stratégies et techniques pour naviguer en toute sécurité dans des conditions de vent fort.',
-            level: 'Intermédiaire',
-            image: 'https://images.pexels.com/photos/1604869/pexels-photo-1604869.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-            progress: 80,
-            lastActivity: '2025-04-22T09:15:00',
-            nextActivity: {
-              id: 'a2',
-              title: 'Quiz final',
-              type: 'quiz',
-              estimatedTime: 30
-            },
-            examDate: '2025-05-10',
-            timeSpent: 420,
-            totalActivities: 28,
-            completedActivities: 22
-          }
-        ];
-        
-        setCourses(tempData);
-      } catch (err) {
-        console.error('Error fetching user courses:', err);
-        setError('Impossible de charger vos parcours');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchUserCourses = async () => {
+    if (!user) return;
     
-    fetchUserCourses();
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Récupérer les cours de l'utilisateur depuis Supabase
+      const { data: userCoursesData, error: userCoursesError } = await supabase
+        .from('user_courses')
+        .select(`
+          id,
+          course_id,
+          exam_date,
+          difficulty,
+          estimated_time,
+          course:courses(id, name, description, level, image_url)
+        `)
+        .eq('user_id', user.id);
+      
+      if (userCoursesError) throw userCoursesError;
+      
+      // Transformation des données pour correspondre au type CourseProgress
+      const progressData: CourseProgress[] = [];
+      
+      for (const userCourse of userCoursesData || []) {
+        // Récupérer le nombre de chapitres pour ce cours
+        const { data: chaptersData, error: chaptersError } = await supabase
+          .from('chapters')
+          .select('id', { count: 'exact' })
+          .eq('course_id', userCourse.course_id);
+        
+        if (chaptersError) throw chaptersError;
+        
+        const chapterCount = chaptersData?.length || 0;
+        
+        // Récupérer les activités pour ce cours (pour l'instant, simulées)
+        // Dans une implémentation réelle, vous récupéreriez les vraies activités
+        const totalActivities = chapterCount * 3; // Estimation: 3 activités par chapitre
+        const completedActivities = Math.floor(Math.random() * totalActivities); // Simulé pour l'instant
+        const progress = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
+        
+        // Créer l'objet CourseProgress
+        const courseInfo = Array.isArray(userCourse.course) && userCourse.course.length > 0 
+          ? userCourse.course[0] 
+          : { id: '', name: userCourse.course_id ? 'Introduction à la psychologie' : 'Cours sans titre', description: '', level: 'débutant' };
+        
+        progressData.push({
+          id: userCourse.id,
+          course_id: userCourse.course_id,
+          title: courseInfo.name,
+          description: courseInfo.description || 'Aucune description disponible',
+          level: userCourse.difficulty || courseInfo.level || 'débutant',
+          progress: progress,
+          lastActivity: new Date().toISOString(), // Simulé pour l'instant
+          examDate: userCourse.exam_date,
+          timeSpent: parseInt(userCourse.estimated_time?.toString() || '0') * 60, // Conversion heures en minutes
+          totalActivities: totalActivities,
+          completedActivities: completedActivities,
+          chapter_count: chapterCount,
+          // Simuler une prochaine activité si le cours a des chapitres et n'est pas terminé
+          ...(chapterCount > 0 && progress < 100 ? {
+            nextActivity: {
+              id: `activity-${userCourse.course_id}-${Math.floor(Math.random() * 1000)}`,
+              title: `Chapitre ${Math.floor(Math.random() * chapterCount) + 1}`,
+              type: ['lecture_active', 'quiz', 'pratique_deliberee'][Math.floor(Math.random() * 3)],
+              estimatedTime: 20 + Math.floor(Math.random() * 40) // Entre 20 et 60 minutes
+            }
+          } : {})
+        });
+      }
+      
+      setCourses(progressData);
+    } catch (err) {
+      console.error('Error fetching user courses:', err);
+      setError('Impossible de charger vos parcours');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    if (user) {
+      fetchUserCourses();
+    }
   }, [user]);
   
   const formatDate = (dateString: string) => {
@@ -131,7 +139,6 @@ const ParcoursPage = () => {
       return `${hours} h ${mins} min`;
     }
   };
-  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -221,29 +228,30 @@ const ParcoursPage = () => {
         {courses.map((course) => (
           <Card key={course.id} className="overflow-hidden">
             <div className="flex flex-col md:flex-row">
-              {/* Image du cours */}
-              <div className="md:w-1/4 h-48 md:h-auto relative">
-                <img 
-                  src={course.image} 
-                  alt={course.title} 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                  <span className={`
-                    text-xs font-medium px-2.5 py-0.5 rounded-full
-                    ${course.level === 'Débutant' ? 'bg-success-100 text-success-800' : 
-                      course.level === 'Intermédiaire' ? 'bg-primary-100 text-primary-800' : 
-                      'bg-accent-100 text-accent-800'}
-                  `}>
-                    {course.level}
+              {/* Informations du cours */}
+              <div className="p-4 border-b border-gray-200 md:w-1/4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-lg text-gray-900 truncate">
+                    {course.title}
+                  </h3>
+                  <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                    {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
                   </span>
                 </div>
+                <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                  {course.description}
+                </p>
+                {course.chapter_count === 0 && (
+                  <div className="bg-red-50 text-red-700 px-3 py-2 rounded-md text-sm flex items-center">
+                    <AlertCircle size={16} className="mr-1.5" />
+                    Aucun chapitre disponible
+                  </div>
+                )}
               </div>
               
               {/* Contenu du cours */}
               <div className="p-6 md:w-3/4 flex flex-col">
                 <div className="flex-1">
-                  <h2 className="text-xl font-medium text-gray-900 mb-1">{course.title}</h2>
                   <p className="text-gray-600 mb-4">{course.description}</p>
                   
                   {/* Barre de progression */}

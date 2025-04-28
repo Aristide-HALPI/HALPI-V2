@@ -1,7 +1,7 @@
 import React, { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost' | 'link';
+  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost' | 'link' | 'gold';
   size?: 'sm' | 'md' | 'lg';
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
@@ -40,6 +40,7 @@ const Button: React.FC<ButtonProps> = ({
     outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-primary-500 disabled:bg-gray-100 disabled:text-gray-400',
     ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500 disabled:text-gray-400',
     link: 'text-primary-600 hover:text-primary-700 underline focus:ring-primary-500 disabled:text-primary-400',
+    gold: 'bg-[#bd8c0f] text-white hover:bg-[#a37a0e] focus:ring-[#bd8c0f] disabled:bg-[#e9d18f]',
   };
   
   // Width classes

@@ -95,7 +95,7 @@ const CourseList = ({ onAddCourse }: CourseListProps) => {
         course: Array.isArray(item.course) && item.course.length > 0 ? item.course[0] : {
           id: '',
           // Utiliser le nom que l'apprenant a entré lors de la création du cours
-          name: item.name || 'Mon cours',
+          name: item.name || 'Introduction à la psychologie',
           description: '',
           image_url: ''
         },

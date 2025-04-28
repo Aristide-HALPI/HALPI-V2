@@ -195,7 +195,7 @@ const AccompagnementPage = () => {
                   </span>
                   
                   <Button 
-                    variant="default" 
+                    variant="primary" 
                     size="sm"
                     disabled={!coach.availability}
                   >
@@ -213,7 +213,7 @@ const AccompagnementPage = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-medium text-gray-900">Mes sessions de coaching</h2>
-            <Button variant="default" size="sm">
+            <Button variant="primary" size="sm">
               Nouvelle session
             </Button>
           </div>
@@ -224,7 +224,7 @@ const AccompagnementPage = () => {
               <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune session</h3>
               <p className="mt-1 text-sm text-gray-500">Commencez par réserver une session avec un coach.</p>
               <div className="mt-6">
-                <Button variant="default" size="sm">
+                <Button variant="primary" size="sm">
                   Réserver une session
                 </Button>
               </div>
@@ -288,7 +288,7 @@ const AccompagnementPage = () => {
                           <Button variant="outline" size="sm">
                             Annuler
                           </Button>
-                          <Button variant="default" size="sm">
+                          <Button variant="primary" size="sm">
                             {session.type === 'video' ? 'Rejoindre' : 
                               session.type === 'message' ? 'Discuter' : 
                               'Voir détails'}
