@@ -18,6 +18,7 @@
     "@supabase/supabase-js": "^2.39.7",
     "@types/react-beautiful-dnd": "^13.1.8",
     "chart.js": "^4.4.2",
+    "fabric": "^6.6.4",
     "framer-motion": "^11.0.8",
     "lucide-react": "^0.344.0",
     "moment": "^2.30.1",

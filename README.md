@@ -297,6 +297,26 @@ uvicorn app.main:app --reload
 
 #### Historique des modifications
 
+- **28 Avril 2025** : Amélioration des activités interactives et de la gestion des feedbacks
+  - **Éditeur d'images interactives** :
+    - Amélioration du zoom et du pan (Alt+clic ou bouton central de la souris)
+    - Optimisation du rendu des zones numérotées (pastilles rouges avec numéros blancs en gras)
+    - Correction des problèmes de transparence des images
+    - Ajout d'un mode prévisualisation de type flashcard avec consignes et champs de réponse
+    - Suppression directe des zones sans confirmation
+  
+  - **Activité Concepts Clés** :
+    - Refonte du design des cartes de concepts (layout à 3 colonnes, badges colorés)
+    - Ajout d'un système de sauvegarde des concepts dans la base de données
+    - Implémentation d'un bouton d'enregistrement explicite en bas à droite
+    - Validation obligatoire avant de pouvoir terminer l'activité
+    - Suppression de la confirmation lors de la suppression d'une carte
+  
+  - **Gestion des feedbacks** :
+    - Amélioration de la structure de la base de données pour les feedbacks d'activités
+    - Ajout des colonnes `activity_type` et `activity_title` pour une meilleure traçabilité
+    - Optimisation des requêtes avec index sur le type d'activité
+
 - **Avril 2025** : Refactoring complet du workflow de gestion des cours
   - Simplification de l'interface d'upload et de découpage
   - Ajout de la page d'édition des cours

@@ -6,20 +6,31 @@ interface StepNavigationProps {
   currentStep: 'introduction' | 'lecture' | 'prise_de_note' | 'conclusion';
   navigateToStep: (step: 'introduction' | 'lecture' | 'prise_de_note' | 'conclusion') => void;
   hasStarted: boolean;
+  activityType?: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles';
 }
 
 const StepNavigation: React.FC<StepNavigationProps> = ({ 
   currentStep, 
   navigateToStep,
-  hasStarted
+  hasStarted,
+  activityType = 'lecture_active'
 }) => {
-  // Définir l'ordre des étapes
-  const steps: ('introduction' | 'lecture' | 'prise_de_note' | 'conclusion')[] = [
-    'introduction',
-    'lecture',
-    'prise_de_note',
-    'conclusion'
-  ];
+  // Déterminer la variante de bouton en fonction du type d'activité
+  // Nous utilisons 'gold' pour les concepts clés car c'est une variante acceptée par le composant Button
+  // Définir l'ordre des étapes en fonction du type d'activité
+  const steps: ('introduction' | 'lecture' | 'prise_de_note' | 'conclusion')[] = 
+    activityType === 'concepts_cles' 
+      ? [
+          'introduction',
+          'lecture',
+          'conclusion'
+        ]
+      : [
+          'introduction',
+          'lecture',
+          'prise_de_note',
+          'conclusion'
+        ];
   
   // Trouver l'index de l'étape actuelle
   const currentIndex = steps.indexOf(currentStep);
@@ -34,7 +45,7 @@ const StepNavigation: React.FC<StepNavigationProps> = ({
       case 'introduction':
         return 'Introduction';
       case 'lecture':
-        return 'Lecture';
+        return activityType === 'concepts_cles' ? 'Concepts clés' : 'Lecture';
       case 'prise_de_note':
         return 'Prise de notes';
       case 'conclusion':

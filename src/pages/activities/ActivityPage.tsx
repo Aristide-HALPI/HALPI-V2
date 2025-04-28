@@ -12,12 +12,13 @@ import IntroductionStep from './components/ActivitySteps/IntroductionStep';
 import LectureStep from './components/ActivitySteps/LectureStep';
 import NoteStep from './components/ActivitySteps/NoteStep/NoteStep';
 import ConclusionStep from './components/ActivitySteps/ConclusionStep';
+import ConceptsStep from './components/ActivitySteps/ConceptsStep';
 
 // Définition des types
 interface Activity {
   id: string;
   title: string;
-  type: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video';
+  type: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles';
   content: string;
   introduction: string;
   conclusion: string;
@@ -142,7 +143,8 @@ const ActivityPage: React.FC = () => {
             chapterId: '1',
             chapterTitle: 'Les bases de la psychologie cognitive',
             status: 'in_progress',
-            type: 'lecture_active',
+            // Utiliser le type 'concepts_cles' pour l'activité d'élaboration des concepts clés
+            type: activityId === 'a1-ch0-step2' ? 'concepts_cles' : 'lecture_active',
             chapterPdfUrl: 'https://fpxwfjicjnrihmmbkwew.supabase.co/storage/v1/object/public/chapters/a682d2f5-a453-450c-befd-dbef55086ffd/1745629048170_psycho-pages-2.pdf'
           };
           
@@ -237,6 +239,8 @@ const ActivityPage: React.FC = () => {
       const feedbackData = {
         activity_id: activity.id,
         user_id: userId,
+        activity_type: activity.type,         // Utiliser le type d'activité (lecture_active, quiz, etc.)
+        activity_title: activity.title,       // Colonne pour le titre de l'activité
         feedback: {
           ...feedback,
           study_time_seconds: totalStudyTimeInSeconds,
@@ -298,7 +302,8 @@ const ActivityPage: React.FC = () => {
       <ActivityProgress 
         currentStep={step} 
         hasStarted={hasStarted} 
-        navigateToStep={navigateToStep} 
+        navigateToStep={navigateToStep}
+        activityType={activity.type}
       />
       
       {/* Contenu de l'activité */}
@@ -311,8 +316,12 @@ const ActivityPage: React.FC = () => {
           />
         )}
         
-        {step === 'lecture' && (
+        {step === 'lecture' && activity.type === 'lecture_active' && (
           <LectureStep activity={activity} />
+        )}
+        
+        {step === 'lecture' && activity.type === 'concepts_cles' && (
+          <ConceptsStep activity={activity} />
         )}
         
         {step === 'prise_de_note' && (
@@ -335,6 +344,7 @@ const ActivityPage: React.FC = () => {
         currentStep={step}
         navigateToStep={navigateToStep}
         hasStarted={hasStarted}
+        activityType={activity.type}
       />
     </div>
   );
