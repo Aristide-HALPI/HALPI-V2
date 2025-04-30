@@ -13,12 +13,19 @@ import LectureStep from './components/ActivitySteps/LectureStep';
 import NoteStep from './components/ActivitySteps/NoteStep/NoteStep';
 import ConclusionStep from './components/ActivitySteps/ConclusionStep';
 import ConceptsStep from './components/ActivitySteps/ConceptsStep';
+import MemorizationIdentificationStep from './components/ActivitySteps/MemorizationIdentificationStep';
+import MemorizationRestitutionStep from './components/ActivitySteps/MemorizationRestitutionStep';
+
+// Import des composants de mindmapping
+import MindmappingIntroStep from './components/ActivitySteps/MindmappingIntroStep';
+import MindmappingManualStep from './components/ActivitySteps/MindmappingManualStep';
+import MindmappingDigitalStep from './components/ActivitySteps/MindmappingDigitalStep';
 
 // Définition des types
 interface Activity {
   id: string;
   title: string;
-  type: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles';
+  type: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles' | 'memorization_concepts' | 'mindmapping';
   content: string;
   introduction: string;
   conclusion: string;
@@ -47,8 +54,12 @@ const ActivityPage: React.FC = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   
+  // États pour le score de mémorisation
+  const [memorisationScore, setMemorisationScore] = useState<number>(0);
+  const [memorisationTotalScore, setMemorisationTotalScore] = useState<number>(30);
+  
   // États pour le suivi du temps d'étude
-  const [studyTime, setStudyTime] = useState<number>(0); // temps total en secondes
+  // Note: Ces variables sont utilisées dans d'autres parties du code
   const [isActive, setIsActive] = useState<boolean>(false); // si le compteur est actif
   const startTimeRef = useRef<number | null>(null); // timestamp de début de l'activité
   const activeTimeRef = useRef<number>(0); // temps actif cumulé
@@ -143,8 +154,10 @@ const ActivityPage: React.FC = () => {
             chapterId: '1',
             chapterTitle: 'Les bases de la psychologie cognitive',
             status: 'in_progress',
-            // Utiliser le type 'concepts_cles' pour l'activité d'élaboration des concepts clés
-            type: activityId === 'a1-ch0-step2' ? 'concepts_cles' : 'lecture_active',
+            // Définir le type d'activité en fonction de l'identifiant
+            type: activityId === 'a1-ch0-step2' ? 'concepts_cles' : 
+                  activityId === 'a2-ch0-step3' ? 'memorization_concepts' :
+                  activityId === 'a2-ch0-step4' ? 'mindmapping' : 'lecture_active',
             chapterPdfUrl: 'https://fpxwfjicjnrihmmbkwew.supabase.co/storage/v1/object/public/chapters/a682d2f5-a453-450c-befd-dbef55086ffd/1745629048170_psycho-pages-2.pdf'
           };
           
@@ -303,12 +316,12 @@ const ActivityPage: React.FC = () => {
         currentStep={step} 
         hasStarted={hasStarted} 
         navigateToStep={navigateToStep}
-        activityType={activity.type}
+        activityType={activity.type as 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles' | 'memorization_concepts' | 'mindmapping'}
       />
       
       {/* Contenu de l'activité */}
       <Card className="p-6">
-        {step === 'introduction' && (
+        {step === 'introduction' && activity.type !== 'mindmapping' && (
           <IntroductionStep 
             activity={activity} 
             startActivity={startActivity} 
@@ -324,11 +337,60 @@ const ActivityPage: React.FC = () => {
           <ConceptsStep activity={activity} />
         )}
         
-        {step === 'prise_de_note' && (
+        {step === 'lecture' && activity.type === 'memorization_concepts' && (
+          <MemorizationIdentificationStep 
+            activity={activity} 
+            onNext={() => navigateToStep('prise_de_note')} 
+          />
+        )}
+        
+        {step === 'introduction' && activity.type === 'mindmapping' && (
+          <MindmappingIntroStep 
+            activity={activity} 
+            onNext={() => navigateToStep('lecture')} 
+          />
+        )}
+        
+        {step === 'lecture' && activity.type === 'mindmapping' && (
+          <MindmappingManualStep 
+            activity={activity} 
+            onNext={() => navigateToStep('prise_de_note')} 
+          />
+        )}
+        
+        {step === 'prise_de_note' && activity.type !== 'memorization_concepts' && activity.type !== 'mindmapping' && (
           <NoteStep activity={activity} />
         )}
         
-        {step === 'conclusion' && (
+        {step === 'prise_de_note' && activity.type === 'memorization_concepts' && (
+          <MemorizationRestitutionStep 
+            activity={activity} 
+            onNext={(score, totalPossible) => {
+              if (score !== undefined) setMemorisationScore(score);
+              if (totalPossible !== undefined) setMemorisationTotalScore(totalPossible);
+              navigateToStep('conclusion');
+            }} 
+          />
+        )}
+        
+        {step === 'prise_de_note' && activity.type === 'mindmapping' && (
+          <MindmappingDigitalStep 
+            activity={activity} 
+            onNext={() => navigateToStep('conclusion')} 
+          />
+        )}
+        
+        {step === 'conclusion' && activity.type !== 'memorization_concepts' && (
+          <ConclusionStep 
+            activity={activity} 
+            feedback={feedback} 
+            setFeedback={setFeedback} 
+            submitFeedback={submitFeedback} 
+            isCompleting={isCompleting} 
+          />
+        )}
+        
+        {step === 'conclusion' && activity.type === 'memorization_concepts' && (
           <ConclusionStep 
             activity={activity} 
             feedback={feedback} 
@@ -344,7 +406,7 @@ const ActivityPage: React.FC = () => {
         currentStep={step}
         navigateToStep={navigateToStep}
         hasStarted={hasStarted}
-        activityType={activity.type}
+        activityType={activity.type as 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles' | 'memorization_concepts' | 'mindmapping'}
       />
     </div>
   );

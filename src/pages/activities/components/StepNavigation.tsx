@@ -6,7 +6,7 @@ interface StepNavigationProps {
   currentStep: 'introduction' | 'lecture' | 'prise_de_note' | 'conclusion';
   navigateToStep: (step: 'introduction' | 'lecture' | 'prise_de_note' | 'conclusion') => void;
   hasStarted: boolean;
-  activityType?: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles';
+  activityType?: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles' | 'memorization_concepts' | 'mindmapping';
 }
 
 const StepNavigation: React.FC<StepNavigationProps> = ({ 
@@ -19,7 +19,7 @@ const StepNavigation: React.FC<StepNavigationProps> = ({
   // Nous utilisons 'gold' pour les concepts clés car c'est une variante acceptée par le composant Button
   // Définir l'ordre des étapes en fonction du type d'activité
   const steps: ('introduction' | 'lecture' | 'prise_de_note' | 'conclusion')[] = 
-    activityType === 'concepts_cles' 
+    activityType === 'concepts_cles' || activityType === 'memorization_concepts'
       ? [
           'introduction',
           'lecture',
@@ -45,8 +45,12 @@ const StepNavigation: React.FC<StepNavigationProps> = ({
       case 'introduction':
         return 'Introduction';
       case 'lecture':
-        return activityType === 'concepts_cles' ? 'Concepts clés' : 'Lecture';
+        if (activityType === 'concepts_cles') return 'Concepts clés';
+        if (activityType === 'memorization_concepts') return 'Mémorisation';
+        if (activityType === 'mindmapping') return 'Mindmap manuscrite';
+        return 'Lecture';
       case 'prise_de_note':
+        if (activityType === 'mindmapping') return 'Mindmap numérique';
         return 'Prise de notes';
       case 'conclusion':
         return 'Conclusion';

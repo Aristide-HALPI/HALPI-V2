@@ -4,7 +4,7 @@ import Button from '../../../../components/common/Button';
 interface Activity {
   id: string;
   title: string;
-  type: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles';
+  type: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles' | 'memorization_concepts' | 'mindmapping';
   introduction: string;
   // Autres propriétés nécessaires
 }
@@ -40,6 +40,11 @@ const IntroductionStep: React.FC<IntroductionStepProps> = ({
             <h3 className="text-xl font-semibold text-gray-800 mb-1">Élaboration des concepts clés</h3>
             <p className="text-gray-600">Identifiez et structurez les notions fondamentales pour mieux les mémoriser</p>
           </div>
+        ) : activity.type === 'memorization_concepts' ? (
+          <div className="border-l-4 border-amber-500 px-6 py-5 bg-amber-50">
+            <h3 className="text-xl font-semibold text-gray-800 mb-1">Mémorisation des concepts clés</h3>
+            <p className="text-gray-600">Testez votre mémoire et consolidez vos connaissances des concepts fondamentaux</p>
+          </div>
         ) : (
           <div className="border-l-4 border-amber-500 px-6 py-5 bg-amber-50">
             <h3 className="text-xl font-semibold text-gray-800 mb-1">Une lecture active pour mieux apprendre</h3>
@@ -48,7 +53,86 @@ const IntroductionStep: React.FC<IntroductionStepProps> = ({
         )}
         
         <div className="p-6">
-          {activity.type === 'concepts_cles' ? (
+          {activity.type === 'memorization_concepts' ? (
+            <>
+              <p className="text-gray-700 mb-6">
+                Dans cette activité, vous allez tester et renforcer votre mémorisation des concepts clés que vous avez précédemment identifiés et structurés.
+              </p>
+              
+              <h4 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                <span className="text-amber-500 mr-2">●</span> 
+                Pourquoi mémoriser activement ?
+              </h4>
+              
+              <div className="mb-6">
+                <p className="text-gray-700 mb-3">
+                  La mémorisation active est une technique d'apprentissage puissante qui vous permet d'ancrer durablement les connaissances dans votre mémoire à long terme.
+                </p>
+                
+                <p className="text-gray-700 mb-3">
+                  Contrairement à la simple relecture passive, la mémorisation active implique :
+                </p>
+                
+                <ul className="space-y-2">
+                  <li className="text-gray-600 flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    Un effort mental conscient pour récupérer l'information de votre mémoire.
+                  </li>
+                  <li className="text-gray-600 flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    Un processus d'auto-évaluation qui renforce les connexions neuronales.
+                  </li>
+                  <li className="text-gray-600 flex items-start">
+                    <span className="text-amber-500 mr-2">•</span>
+                    Une consolidation des connaissances qui facilite leur application future.
+                  </li>
+                </ul>
+              </div>
+              
+              <h4 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                <span className="text-blue-500 mr-2">●</span> 
+                Déroulement de l'activité
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-amber-50 rounded-xl p-5 border border-amber-100">
+                  <div className="flex items-center mb-3">
+                    <div className="bg-amber-100 w-8 h-8 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-amber-500 text-sm">1</span>
+                    </div>
+                    <h5 className="font-medium text-gray-800">Identification</h5>
+                  </div>
+                  <p className="text-gray-600">Vous devrez retrouver les titres des concepts clés que vous avez définis précédemment. Cet exercice teste votre capacité à vous rappeler des informations essentielles.</p>
+                </div>
+                
+                <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
+                  <div className="flex items-center mb-3">
+                    <div className="bg-blue-100 w-8 h-8 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-blue-500 text-sm">2</span>
+                    </div>
+                    <h5 className="font-medium text-gray-800">Restitution</h5>
+                  </div>
+                  <p className="text-gray-600">Pour chaque concept, vous devrez compléter les champs que vous avez renseignés initialement (what, why, how, etc.). Cet exercice renforce votre compréhension en profondeur.</p>
+                </div>
+              </div>
+              
+              <div className="bg-green-50 rounded-xl p-5 border border-green-100 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0 mr-4">
+                    <div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center">
+                      <span className="text-green-500 text-lg">✓</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-gray-700 font-medium mb-1">Bénéfices de cette activité</p>
+                    <p className="text-gray-600">
+                      En pratiquant régulièrement cet exercice de mémorisation active, vous améliorerez considérablement votre capacité à retenir et à appliquer les concepts clés de votre cours, ce qui est essentiel pour réussir vos examens et développer une compréhension durable de la matière.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : activity.type === 'concepts_cles' ? (
             <>
               <p className="text-gray-700 mb-6">
                 Dans cette activité, vous allez apprendre à identifier et à structurer les concepts fondamentaux de votre chapitre.

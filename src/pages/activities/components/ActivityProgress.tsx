@@ -6,7 +6,7 @@ interface ActivityProgressProps {
   currentStep: StepType;
   hasStarted: boolean;
   navigateToStep: (step: StepType) => void;
-  activityType?: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles';
+  activityType?: 'lecture_active' | 'quiz' | 'pratique_deliberee' | 'video' | 'concepts_cles' | 'memorization_concepts' | 'mindmapping';
 }
 
 const ActivityProgress: React.FC<ActivityProgressProps> = ({ 
@@ -16,8 +16,8 @@ const ActivityProgress: React.FC<ActivityProgressProps> = ({
   activityType = 'lecture_active'
 }) => {
   // Déterminer la couleur des étapes en fonction du type d'activité
-  // Pour concepts_cles, on utilise amber-500 qui correspond à la teinte dorée exacte
-  const primaryColor = activityType === 'concepts_cles' ? 'amber' : 'primary';
+  // Pour concepts_cles, memorization_concepts et mindmapping, on utilise amber-500 qui correspond à la teinte dorée exacte
+  const primaryColor = (activityType === 'concepts_cles' || activityType === 'memorization_concepts' || activityType === 'mindmapping') ? 'amber' : 'primary';
   const amberShade = '500'; // La teinte exacte de doré à utiliser
 
   // Déterminer le libellé de l'étape 2 en fonction du type d'activité
@@ -25,6 +25,10 @@ const ActivityProgress: React.FC<ActivityProgressProps> = ({
     switch (activityType) {
       case 'concepts_cles':
         return 'Concepts clés';
+      case 'memorization_concepts':
+        return 'Identification';
+      case 'mindmapping':
+        return 'Mindmap manuscrite';
       case 'quiz':
         return 'Questions';
       case 'pratique_deliberee':
@@ -35,6 +39,17 @@ const ActivityProgress: React.FC<ActivityProgressProps> = ({
       default:
         return 'Lecture';
     }
+  };
+  
+  // Déterminer le libellé de l'étape 3 en fonction du type d'activité
+  const getStep3Label = () => {
+    if (activityType === 'memorization_concepts') {
+      return 'Restitution';
+    }
+    if (activityType === 'mindmapping') {
+      return 'Mindmap numérique';
+    }
+    return 'Prise de note';
   };
   return (
     <div className="mb-6">
@@ -62,7 +77,7 @@ const ActivityProgress: React.FC<ActivityProgressProps> = ({
               onClick={() => hasStarted && navigateToStep('prise_de_note')}
             >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${currentStep === 'prise_de_note' ? `bg-${primaryColor}-100 border-2 border-${primaryColor}-${primaryColor === 'amber' ? amberShade : '500'}` : currentStep === 'conclusion' && hasStarted ? 'bg-gray-300' : 'bg-gray-100'}`}>3</div>
-              <span className="text-xs">Prise de note</span>
+              <span className="text-xs">{getStep3Label()}</span>
             </div>
           </>
         )}
