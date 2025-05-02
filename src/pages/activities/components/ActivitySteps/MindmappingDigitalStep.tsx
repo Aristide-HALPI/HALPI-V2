@@ -41,6 +41,25 @@ const MindmappingDigitalStep: React.FC<MindmappingDigitalStepProps> = ({ activit
       loadSavedMindmap();
     }
   }, [user, activity.id]);
+  
+  // Détection des modifications pour le rendu en temps réel
+  useEffect(() => {
+    // Afficher les branches dans la console pour débogage
+    console.log('Branches actuelles:', branches);
+    
+    // Sauvegarder automatiquement les modifications pour assurer la cohérence
+    if (user && (centralTopic || branches.length > 0)) {
+      const timeoutId = setTimeout(() => {
+        try {
+          saveMindmap();
+        } catch (error) {
+          console.error('Erreur lors de la sauvegarde automatique:', error);
+        }
+      }, 500); // Délai pour éviter trop d'appels
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [branches, centralTopic]);
 
   const loadSavedMindmap = async () => {
     try {
@@ -87,12 +106,15 @@ const MindmappingDigitalStep: React.FC<MindmappingDigitalStepProps> = ({ activit
     if (!user) return;
 
     try {
+      // S'assurer que les branches sont correctement sérialisées
+      const serializedBranches = JSON.parse(JSON.stringify(branches));
+      
       const mindmapData = {
         activity_id: activity.id,
         user_id: user.id,
         chapter_id: activity.chapterId,
         central_topic: centralTopic,
-        branches: branches,
+        branches: serializedBranches,
         updated_at: new Date().toISOString(),
         feedback: feedback,
         score: score
@@ -364,43 +386,195 @@ const MindmappingDigitalStep: React.FC<MindmappingDigitalStepProps> = ({ activit
         </div>
       </div>
 
-      {/* Visualisation récapitulative */}
-      {branches.length > 0 && (
-        <div className="bg-white border rounded-md p-4 mt-6">
-          <h3 className="text-lg font-medium text-gray-800 mb-3">Récapitulatif de votre carte mentale</h3>
-          
-          <div className="bg-gray-50 p-4 rounded-md">
-            <div className="flex justify-center mb-4">
-              <div className="bg-[#bd8c0f] text-white font-medium px-4 py-2 rounded-full">
-                {centralTopic || "Sujet central"}
+      {/* Visualisation récapitulative - toujours visible même si incomplet */}
+      <div className="bg-white border rounded-md p-4 mt-6">
+        <h3 className="text-lg font-medium text-gray-800 mb-3">Récapitulatif de votre carte mentale</h3>
+        
+        <div className="bg-white p-4 rounded-md relative overflow-hidden" style={{ minHeight: '600px' }}>
+          {/* Message d'aide si aucune branche n'est créée */}
+          {branches.length === 0 && centralTopic === '' && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-gray-400 z-5">
+              <div className="mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
               </div>
+              <p className="text-lg">Votre carte mentale s'affichera ici</p>
+              <p className="text-sm mt-2">Commencez par saisir un sujet central et ajoutez des branches</p>
+            </div>
+          )}
+          
+          {/* Visualisation style mindmap professionnel */}
+          <div className="relative w-full h-full" style={{ minHeight: '550px' }}>
+            {/* Sujet central */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">
+              {centralTopic && (
+                <div className="bg-white border-2 border-blue-600 text-blue-800 font-bold px-6 py-4 rounded-lg shadow-lg text-center min-w-[180px]">
+                  {centralTopic}
+                </div>
+              )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {branches.map((branch) => (
-                <div key={branch.id} className="border border-gray-200 rounded-md p-3 bg-white">
-                  <h4 className="font-medium text-gray-800 mb-2">{branch.title || "Branche sans titre"}</h4>
+            {/* Branches principales et sous-branches */}
+            {branches.length > 0 && (
+              <div className="absolute inset-0">
+                {/* Lignes de connexion */}
+                {branches.map((branch, index) => {
+                  // Définir les formes et couleurs pour chaque branche principale
+                  const branchStyles = [
+                    { color: '#4285F4', lightBg: '#D6E4FF', shape: 'rounded-full', icon: '🔵' }, // Cercle bleu
+                    { color: '#34A853', lightBg: '#D7F4E3', shape: 'rounded-md', icon: '🟢' },     // Rectangle vert
+                    { color: '#FBBC05', lightBg: '#FFF2D6', shape: 'rounded-md', icon: '🟡' },     // Rectangle jaune
+                    { color: '#EA4335', lightBg: '#FFDAD6', shape: 'hexagon', icon: '🔴' },        // Hexagone rouge
+                    { color: '#8E44AD', lightBg: '#F0D9FF', shape: 'rounded-full', icon: '🟣' },   // Cercle violet
+                    { color: '#F39C12', lightBg: '#FFECD6', shape: 'hexagon', icon: '🟠' },        // Hexagone orange
+                    { color: '#16A085', lightBg: '#D6F4F0', shape: 'rounded-md', icon: '🟩' }      // Rectangle turquoise
+                  ];
                   
-                  {branch.subBranches.length > 0 ? (
-                    <ul className="pl-4 space-y-1">
-                      {branch.subBranches.map((subBranch) => (
-                        <li key={subBranch.id} className="text-sm">
-                          <span className="font-medium">{subBranch.title || "Sous-branche sans titre"}</span>
-                          {subBranch.details && (
-                            <p className="text-xs text-gray-600 mt-1">{subBranch.details}</p>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-gray-500">Aucune sous-branche</p>
-                  )}
-                </div>
-              ))}
-            </div>
+                  const style = branchStyles[index % branchStyles.length];
+                  const totalBranches = branches.length;
+                  
+                  // Calculer la position de chaque branche principale
+                  let positionX: number = 0, positionY: number = 0, lineX1: number = 0, lineY1: number = 0, lineX2: number = 0, lineY2: number = 0;
+                  const centerX = 50; // Centre en pourcentage
+                  const centerY = 50; // Centre en pourcentage
+                  
+                  // Distribuer les branches selon leur position dans le tableau
+                  if (totalBranches <= 4) {
+                    // Pour 1 à 4 branches, les placer aux 4 côtés
+                    switch (index % 4) {
+                      case 0: // Droite
+                        positionX = 75;
+                        positionY = 50;
+                        lineX1 = centerX + 10;
+                        lineY1 = centerY;
+                        lineX2 = positionX - 10;
+                        lineY2 = positionY;
+                        break;
+                      case 1: // Bas
+                        positionX = 50;
+                        positionY = 75;
+                        lineX1 = centerX;
+                        lineY1 = centerY + 10;
+                        lineX2 = positionX;
+                        lineY2 = positionY - 10;
+                        break;
+                      case 2: // Gauche
+                        positionX = 25;
+                        positionY = 50;
+                        lineX1 = centerX - 10;
+                        lineY1 = centerY;
+                        lineX2 = positionX + 10;
+                        lineY2 = positionY;
+                        break;
+                      case 3: // Haut
+                        positionX = 50;
+                        positionY = 25;
+                        lineX1 = centerX;
+                        lineY1 = centerY - 10;
+                        lineX2 = positionX;
+                        lineY2 = positionY + 10;
+                        break;
+                    }
+                  } else {
+                    // Pour plus de 4 branches, les répartir en cercle
+                    const angle = ((index * (360 / totalBranches)) * Math.PI) / 180;
+                    const distance = 25; // Distance du centre en pourcentage
+                    
+                    positionX = centerX + Math.cos(angle) * distance;
+                    positionY = centerY + Math.sin(angle) * distance;
+                    
+                    // Points de départ et d'arrivée de la ligne
+                    const innerDistance = 10;
+                    const outerDistance = 10;
+                    
+                    lineX1 = centerX + Math.cos(angle) * innerDistance;
+                    lineY1 = centerY + Math.sin(angle) * innerDistance;
+                    lineX2 = positionX - Math.cos(angle) * outerDistance;
+                    lineY2 = positionY - Math.sin(angle) * outerDistance;
+                  }
+                  
+                  return (
+                    <div key={branch.id} className="absolute" style={{ 
+                      width: '100%', 
+                      height: '100%',
+                      pointerEvents: 'none'
+                    }}>
+                      {/* Ligne de connexion */}
+                      <svg className="absolute inset-0 w-full h-full overflow-visible" style={{ zIndex: 10 }}>
+                        <line 
+                          x1={`${lineX1}%`} 
+                          y1={`${lineY1}%`} 
+                          x2={`${lineX2}%`} 
+                          y2={`${lineY2}%`} 
+                          stroke={style.color} 
+                          strokeWidth="2" 
+                        />
+                      </svg>
+                      
+                      {/* Branche principale */}
+                      <div className="absolute" style={{ 
+                        left: `${positionX}%`, 
+                        top: `${positionY}%`,
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 20,
+                        pointerEvents: 'auto'
+                      }}>
+                        <div className={`${style.shape === 'hexagon' ? 'hexagon' : ''} shadow-lg p-3 text-center font-bold min-w-[120px]`}
+                          style={{
+                            backgroundColor: style.color,
+                            color: 'white',
+                            borderRadius: style.shape === 'rounded-full' ? '9999px' : style.shape === 'rounded-md' ? '0.375rem' : '0'
+                          }}>
+                          {branch.title || "Branche sans titre"}
+                        </div>
+                        
+                        {/* Sous-branches */}
+                        {branch.subBranches.length > 0 && (
+                          <div className="mt-4 space-y-2" style={{ 
+                            maxWidth: '200px',
+                            position: 'relative',
+                            zIndex: 25
+                          }}>
+                            {branch.subBranches.map((subBranch) => {
+                              // Déterminer la direction des sous-branches
+                              const isLeft = positionX < centerX;
+                              const marginDirection = isLeft ? 'mr-auto' : 'ml-auto';
+                              const borderDirection = isLeft ? 'border-l-4' : 'border-r-4';
+                              
+                              return (
+                                <div key={subBranch.id} 
+                                  className={`${marginDirection} ${borderDirection} rounded-md p-2 shadow-md`} 
+                                  style={{ 
+                                    backgroundColor: style.lightBg,
+                                    borderColor: style.color,
+                                    maxWidth: '180px'
+                                  }}>
+                                  <div className="font-medium text-sm">{subBranch.title || "Sous-branche"}</div>
+                                  {subBranch.details && (
+                                    <p className="text-xs mt-1 text-gray-700">{subBranch.details}</p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
+      
+      {/* Style pour les formes hexagonales */}
+      <style>{`
+        .hexagon {
+          clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+        }
+      `}</style>
 
       {/* Boutons d'action */}
       <div className="flex justify-between items-center pt-4 border-t">
