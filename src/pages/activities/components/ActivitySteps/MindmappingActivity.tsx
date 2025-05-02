@@ -8,6 +8,8 @@ interface Activity {
   id: string;
   title: string;
   type: string;
+  content: string;
+  chapterId: string;
   introduction?: string;
   chapterPdfUrl?: string;
   courseId?: string;
@@ -43,7 +45,7 @@ const MindmappingActivity: React.FC<MindmappingActivityProps> = ({ activity, onC
     setCurrentStep(MindmappingStep.DIGITAL);
   };
 
-  const goToConclusion = (score: number, totalPossible: number) => {
+  const goToConclusion = (score: number = 0, totalPossible: number = 30) => {
     setScore(score);
     setTotalPossibleScore(totalPossible);
     setCurrentStep(MindmappingStep.CONCLUSION);
@@ -61,7 +63,7 @@ const MindmappingActivity: React.FC<MindmappingActivityProps> = ({ activity, onC
       return (
         <MindmappingDigitalStep 
           activity={activity} 
-          onNext={(score, totalPossible) => goToConclusion(score, totalPossible)} 
+          onNext={() => goToConclusion()} 
         />
       );
       
