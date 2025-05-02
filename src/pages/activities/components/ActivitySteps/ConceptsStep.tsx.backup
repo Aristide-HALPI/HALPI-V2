@@ -167,8 +167,6 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
         return;
       }
       
-      console.log('Sauvegarde des concepts pour activity_id:', activity.id);
-    
       // Préparer les données à enregistrer
       const conceptsData = {
         activity_id: activity.id,
@@ -176,8 +174,6 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
         concepts: concepts,
         updated_at: new Date().toISOString()
       };
-      
-      console.log('Données à enregistrer:', conceptsData);
       
       // Enregistrer dans Supabase
       const { error } = await supabase
@@ -234,19 +230,6 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
     loadConcepts();
   }, [activity.id]);
   
-  // Ajuster la hauteur des textareas quand le formulaire est affiché
-  useEffect(() => {
-    if (showConceptForm) {
-      // Attendre que le DOM soit mis à jour
-      setTimeout(() => {
-        const textareas = document.querySelectorAll('textarea');
-        textareas.forEach(textarea => {
-          adjustTextareaHeight(textarea as HTMLTextAreaElement);
-        });
-      }, 100);
-    }
-  }, [showConceptForm, newConcept]);
-  
   // Fonction pour éditer un concept existant
   const handleEditConcept = (concept: Concept, e: React.MouseEvent) => {
     e.stopPropagation(); // Empêcher la propagation pour éviter d'ouvrir le détail
@@ -300,17 +283,6 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
       ...prev,
       [name]: value
     }));
-    
-    // Ajuster automatiquement la hauteur du textarea
-    if (e.target instanceof HTMLTextAreaElement) {
-      adjustTextareaHeight(e.target);
-    }
-  };
-  
-  // Fonction pour ajuster automatiquement la hauteur des textareas
-  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
   };
   
   // Fonction pour gérer le changement de l'état du schéma
@@ -462,11 +434,11 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
           disabled={isSaving || (isSaved && concepts.length > 0)}
           className={`flex items-center border-2 ${isSaved 
             ? 'bg-green-50 border-green-500 text-green-600 hover:bg-green-100' 
-            : 'bg-white border-[#bd8c0f] text-[#bd8c0f] hover:bg-amber-50'}`}
+            : 'bg-white border-amber-500 text-amber-600 hover:bg-amber-50'}`}
         >
           {isSaving ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#bd8c0f] mr-2"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500 mr-2"></div>
               Enregistrement...
             </>
           ) : isSaved ? (
@@ -752,9 +724,7 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
                     name="who"
                     value={newConcept.who}
                     onChange={handleInputChange}
-                    onFocus={(e) => adjustTextareaHeight(e.target)}
                     rows={2}
-                    style={{ minHeight: '50px', overflow: 'hidden', resize: 'none' }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder=""
                   ></textarea>
@@ -800,9 +770,7 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
                     name="what"
                     value={newConcept.what}
                     onChange={handleInputChange}
-                    onFocus={(e) => adjustTextareaHeight(e.target)}
                     rows={3}
-                    style={{ minHeight: '75px', overflow: 'hidden', resize: 'none' }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder=""
                   ></textarea>
@@ -847,9 +815,7 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
                     name="why"
                     value={newConcept.why}
                     onChange={handleInputChange}
-                    onFocus={(e) => adjustTextareaHeight(e.target)}
                     rows={2}
-                    style={{ minHeight: '50px', overflow: 'hidden', resize: 'none' }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder=""
                   ></textarea>
@@ -894,9 +860,7 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
                     name="how"
                     value={newConcept.how}
                     onChange={handleInputChange}
-                    onFocus={(e) => adjustTextareaHeight(e.target)}
                     rows={2}
-                    style={{ minHeight: '50px', overflow: 'hidden', resize: 'none' }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder=""
                   ></textarea>
@@ -947,9 +911,7 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
                     name="when"
                     value={newConcept.when}
                     onChange={handleInputChange}
-                    onFocus={(e) => adjustTextareaHeight(e.target)}
                     rows={2}
-                    style={{ minHeight: '50px', overflow: 'hidden', resize: 'none' }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder=""
                   ></textarea>
@@ -994,9 +956,7 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
                     name="where"
                     value={newConcept.where}
                     onChange={handleInputChange}
-                    onFocus={(e) => adjustTextareaHeight(e.target)}
-                    rows={3}
-                    style={{ minHeight: '75px', overflow: 'hidden', resize: 'none' }}
+                    rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder=""
                   ></textarea>
@@ -1041,9 +1001,7 @@ const ConceptsStep: React.FC<ConceptsStepProps> = ({ activity }) => {
                     name="essentials"
                     value={newConcept.essentials}
                     onChange={handleInputChange}
-                    onFocus={(e) => adjustTextareaHeight(e.target)}
                     rows={2}
-                    style={{ minHeight: '50px', overflow: 'hidden', resize: 'none' }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder=""
                   ></textarea>
