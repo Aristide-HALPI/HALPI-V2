@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Edit, Pencil, Layers, Link as LinkIcon } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import Button from '../../../../components/common/Button';
 
 interface Activity {
@@ -16,7 +16,7 @@ interface MindmappingManualStepProps {
   onNext: () => void;
 }
 
-const MindmappingManualStep: React.FC<MindmappingManualStepProps> = ({ activity, onNext }) => {
+const MindmappingManualStep: React.FC<MindmappingManualStepProps> = ({ onNext }) => {
   return (
     <div className="max-w-4xl mx-auto">
       {/* En-tête avec icône */}

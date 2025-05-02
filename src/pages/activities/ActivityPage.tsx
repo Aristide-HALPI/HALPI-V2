@@ -54,9 +54,9 @@ const ActivityPage: React.FC = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   
-  // États pour le score de mémorisation
-  const [memorisationScore, setMemorisationScore] = useState<number>(0);
-  const [memorisationTotalScore, setMemorisationTotalScore] = useState<number>(30);
+  // États pour le score de mémorisation - utilisés par MemorizationRestitutionStep
+  const [, setMemorisationScore] = useState<number>(0);
+  const [, setMemorisationTotalScore] = useState<number>(30);
   
   // États pour le suivi du temps d'étude
   // Note: Ces variables sont utilisées dans d'autres parties du code

@@ -16,7 +16,7 @@ interface MindmappingIntroStepProps {
   onNext: () => void;
 }
 
-const MindmappingIntroStep: React.FC<MindmappingIntroStepProps> = ({ activity, onNext }) => {
+const MindmappingIntroStep: React.FC<MindmappingIntroStepProps> = ({ onNext }) => {
   return (
     <div className="max-w-4xl mx-auto">
       {/* En-tête avec icône */}
