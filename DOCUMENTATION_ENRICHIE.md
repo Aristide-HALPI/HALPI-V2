@@ -14,11 +14,21 @@ Cette documentation complémentaire vient enrichir le README principal avec des 
    - [Persistance des données](#persistance-des-données)
    - [Fonctionnalités d'édition avancées](#fonctionnalités-dédition-avancées)
    - [Schéma de la base de données](#schéma-de-la-base-de-données)
-3. [Diagrammes et schémas](#diagrammes-et-schémas)
+3. [Activité de mindmapping](#activité-de-mindmapping)
+   - [Présentation générale](#présentation-générale-mindmapping)
+   - [Structure des composants](#structure-des-composants)
+   - [Visualisation radiale](#visualisation-radiale)
+   - [Persistance des données](#persistance-des-données-mindmapping)
+   - [Intégration IA](#intégration-ia-mindmapping)
+4. [Services IA et API](#services-ia-et-api)
+   - [Architecture des services](#architecture-des-services)
+   - [Endpoints API](#endpoints-api)
+   - [Intégration avec les activités](#intégration-avec-les-activités)
+5. [Diagrammes et schémas](#diagrammes-et-schémas)
    - [Architecture globale](#architecture-globale)
    - [Flux de données](#flux-de-données)
    - [Modèle de données](#modèle-de-données)
-4. [Guide de dépannage](#guide-de-dépannage)
+6. [Guide de dépannage](#guide-de-dépannage)
    - [Problèmes courants](#problèmes-courants)
    - [Solutions recommandées](#solutions-recommandées)
 
@@ -410,29 +420,292 @@ La structure JSON pour le stockage des données est organisée comme suit :
 
 ```
 ┌────────────┐     ┌────────────┐     ┌────────────┐
-│   users    │     │  courses   │     │  chapters  │
+│  courses   │     │  chapters  │     │  users     │
 ├────────────┤     ├────────────┤     ├────────────┤
-│ id         │1   *│ id         │1   *│ id         │
-│ email      ├─────┤ title      ├─────┤ title      │
-│ name       │     │ description│     │ content    │
-│ avatar_url │     │ image_url  │     │ order_index│
-└────────────┘     │ level      │     │ course_id  │
-                   │ created_by │     └────────────┘
-                   └────────────┘           │
-                         │                  │
-                         │                  │
+│ id         │◄────┤ course_id  │     │ id         │
+│ title      │     │ title      │     │ email      │
+│ description│     │ content    │     │ created_at │
+│ image_url  │     │ pdf_url    │     └────────────┘
+│ level      │     │ order_index│           ▲
+│ created_by │─────┤ created_by │           │
+└────────────┘     └────────────┘           │
                          ▼                  │
 ┌────────────┐     ┌────────────┐          │
 │ activities │     │ user_notes │          │
 ├────────────┤     ├────────────┤          │
 │ id         │     │ id         │          │
 │ title      │     │ user_id    │          │
-│ type       │     │ activity_id│          │
-│ course_id  │◄────┤ chapter_id │◄─────────┘
+│ type       │     │ activity_id│◄─────────┘
+│ course_id  │◄────┤ chapter_id │
 │ chapter_id │     │ content    │
 └────────────┘     │ updated_at │
                    └────────────┘
+                         ▲
+                         │
+┌──────────────────────┐ │ ┌──────────────────────┐
+│activity_memorization_│ │ │activity_mindmapping_ │
+│     progress         │ │ │     progress         │
+├──────────────────────┤ │ ├──────────────────────┤
+│id                    │ │ │id                    │
+│activity_id           │─┘ │activity_id           │
+│user_id               │   │user_id               │
+│found_concepts        │   │central_topic         │
+│current_concept_index │   │branches              │
+│is_complete           │   │created_at            │
+│updated_at            │   │updated_at            │
+└──────────────────────┘   └──────────────────────┘
 ```
+
+## Activité de mindmapping
+
+### Présentation générale {#présentation-générale-mindmapping}
+
+L'activité de mindmapping (carte mentale) est un outil pédagogique avancé intégré dans HALPI V2 qui permet aux apprenants de structurer visuellement leurs connaissances autour d'un sujet central. Cette activité suit une approche pédagogique en plusieurs étapes, allant de la sensibilisation à la création numérique interactive.
+
+Cette fonctionnalité est particulièrement utile pour :
+- Organiser et hiérarchiser les idées
+- Établir des connexions entre différents concepts
+- Faciliter la mémorisation par la visualisation
+- Développer la pensée créative et non-linéaire
+- Synthétiser des informations complexes
+
+### Structure des composants
+
+L'activité de mindmapping est organisée en quatre étapes distinctes, chacune gérée par un composant spécifique :
+
+#### 1. MindmappingActivity.tsx
+
+Composant principal qui orchestre le flux entre les différentes étapes de l'activité :
+
+```typescript
+enum MindmappingStep {
+  INTRODUCTION = 'introduction',
+  MANUAL = 'manual',
+  DIGITAL = 'digital',
+  CONCLUSION = 'conclusion'
+}
+```
+
+Ce composant gère la navigation entre les étapes et maintient l'état global de l'activité.
+
+#### 2. MindmappingIntroStep.tsx
+
+Étape d'introduction qui présente le concept de carte mentale et ses bénéfices pédagogiques :
+
+- Explication du principe de la carte mentale
+- Présentation des objectifs de l'activité
+- Instructions pour les étapes suivantes
+
+#### 3. MindmappingManualStep.tsx
+
+Étape de création manuelle où l'apprenant est encouragé à dessiner sa carte mentale sur papier :
+
+- Guide pour la création d'une carte mentale manuscrite
+- Conseils pratiques et méthodologiques
+- Option pour télécharger et imprimer un modèle vierge
+
+#### 4. MindmappingDigitalStep.tsx
+
+Étape de création numérique interactive avec un formulaire dynamique et une visualisation en temps réel :
+
+- Formulaire pour définir le sujet central
+- Interface pour ajouter/modifier/supprimer des branches principales
+- Gestion des sous-branches avec détails explicatifs
+- Visualisation radiale interactive qui se met à jour en temps réel
+- Sauvegarde automatique de la progression
+- Évaluation IA du travail réalisé
+
+### Visualisation radiale
+
+La visualisation de la carte mentale dans l'étape numérique utilise une approche radiale professionnelle :
+
+#### Caractéristiques visuelles
+
+- **Sujet central** : Affiché au centre dans un rectangle arrondi avec bordure bleue
+- **Branches principales** : Disposées autour du sujet central avec des formes distinctives
+  - Formes variées : hexagones, cercles, rectangles selon le type de branche
+  - Couleurs uniques pour chaque branche principale
+- **Sous-branches** : Affichées avec une version plus claire de la couleur de leur branche parente
+  - Bordure colorée sur le côté pour indiquer la relation avec la branche parente
+  - Affichage du titre et des détails dans un format lisible
+
+#### Organisation spatiale
+
+- **Disposition intelligente** qui s'adapte au nombre de branches :
+  - Pour 1-4 branches : disposition aux 4 points cardinaux (haut, droite, bas, gauche)
+  - Pour 5+ branches : disposition circulaire autour du centre
+- **Connexions visuelles** : Lignes SVG reliant le sujet central à chaque branche
+- **Positionnement des sous-branches** : Alignement automatique à gauche ou à droite selon leur position
+
+#### Implémentation technique
+
+```tsx
+// Exemple de code pour la création d'une forme hexagonale
+<div className="hexagon shadow-lg p-3 text-center font-bold"
+  style={{
+    backgroundColor: style.color,
+    color: 'white',
+    clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)'
+  }}>
+  {branch.title || "Branche sans titre"}
+</div>
+```
+
+### Persistance des données {#persistance-des-données-mindmapping}
+
+#### Schéma de la base de données
+
+La progression de l'activité de mindmapping est sauvegardée dans la table `activity_mindmapping_progress` :
+
+```sql
+CREATE TABLE activity_mindmapping_progress (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  activity_id TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  central_topic TEXT,
+  branches JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  CONSTRAINT unique_user_activity UNIQUE (user_id, activity_id)
+);
+
+-- Politiques RLS pour la sécurité
+CREATE POLICY "Les utilisateurs peuvent lire leur propre progression de mindmapping"
+  ON activity_mindmapping_progress FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Les utilisateurs peuvent créer leur propre progression de mindmapping"
+  ON activity_mindmapping_progress FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Les utilisateurs peuvent mettre à jour leur propre progression de mindmapping"
+  ON activity_mindmapping_progress FOR UPDATE
+  USING (auth.uid() = user_id);
+```
+
+#### Structure des données JSON
+
+Les branches et sous-branches sont stockées au format JSON dans le champ `branches` :
+
+```json
+{
+  "branches": [
+    {
+      "id": "branch-1",
+      "title": "Concept principal",
+      "subBranches": [
+        {
+          "id": "sub-1",
+          "title": "Sous-concept",
+          "details": "Explication détaillée du sous-concept"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Intégration IA {#intégration-ia-mindmapping}
+
+L'activité de mindmapping intègre une évaluation IA qui analyse la structure et le contenu de la carte mentale :
+
+- **Évaluation de la structure** : Analyse de l'organisation hiérarchique et des relations entre les concepts
+- **Évaluation du contenu** : Analyse de la pertinence et de la complétude des informations
+- **Feedback personnalisé** : Suggestions d'amélioration et points forts identifiés
+
+L'intégration utilise le service `AIService` pour communiquer avec l'API Fabrile.
+
+## Services IA et API
+
+### Architecture des services
+
+Les services IA de HALPI V2 sont organisés selon une architecture modulaire :
+
+#### Structure des dossiers
+
+```
+src/
+├── api/
+│   └── ai/
+│       └── routes/
+│           ├── fabrileInteraction.ts
+│           └── thread.ts
+└── services/
+    └── ai/
+        └── AIService.ts
+```
+
+#### Composants principaux
+
+1. **AIService.ts** : Service principal qui expose des méthodes de haut niveau pour interagir avec l'IA
+
+```typescript
+class AIService {
+  // Évaluation des concepts restitués
+  static async evaluateConceptRestitution(userResponses, referenceConcept);
+  
+  // Évaluation de la carte mentale
+  static async evaluateMindmap(centralTopic, branches);
+  
+  // Autres méthodes d'évaluation...
+}
+```
+
+2. **fabrileInteraction.ts** : Gestion des interactions avec l'API Fabrile
+
+```typescript
+// Création d'une nouvelle interaction avec Fabrile
+export async function createFabrileInteraction(botId, content, userId);
+
+// Récupération des réponses de Fabrile
+export async function getFabrileResponse(interactionId);
+```
+
+3. **thread.ts** : Gestion des threads de conversation pour les interactions continues
+
+```typescript
+// Création d'un nouveau thread
+export async function createThread(userId, contextData);
+
+// Ajout d'un message à un thread existant
+export async function addMessageToThread(threadId, content, role);
+```
+
+### Endpoints API
+
+Les endpoints API pour l'IA sont structurés comme suit :
+
+#### Évaluation des concepts
+
+- **POST /api/ai/evaluate-concept**
+  - Évalue la restitution d'un concept par rapport à une référence
+  - Retourne un score et un feedback détaillé
+
+#### Évaluation des cartes mentales
+
+- **POST /api/ai/evaluate-mindmap**
+  - Évalue la structure et le contenu d'une carte mentale
+  - Retourne des suggestions d'amélioration et une analyse qualitative
+
+### Intégration avec les activités
+
+Les services IA sont intégrés avec plusieurs activités pédagogiques :
+
+1. **Mémorisation (MemorizationRestitutionStep)**
+   - Évaluation des réponses de restitution des concepts
+   - Feedback détaillé par champ avec score et commentaires
+   - Système de secours local en cas d'indisponibilité de l'IA
+
+2. **Mindmapping (MindmappingDigitalStep)**
+   - Analyse de la structure de la carte mentale
+   - Évaluation de la pertinence des branches et sous-branches
+   - Suggestions d'amélioration personnalisées
+
+3. **Composant AIEvaluationButton**
+   - Bouton réutilisable pour déclencher une évaluation IA
+   - Gestion des états de chargement et d'erreur
+   - Affichage du feedback dans une interface utilisateur cohérente
 
 ## Guide de dépannage
 
